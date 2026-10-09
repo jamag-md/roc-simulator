@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>ROC Threshold Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: population controls in a left rail; distributions and ROC side by side, cutoff slider and readouts beneath them */
+:root {
+  --bg: #f2f4f7;
+  --surface: #ffffff;
+  --sunk: #e8ecf1;
+  --ink: #121a24;
+  --muted: #586577;
+  --line: #d4dbe4;
+  --grid: #e8ecf1;
+  --healthy: #2b62c4;
+  --disease: #13804a;
+  --accent: #cf4510;
+  --on-accent: #ffffff;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0d1116; --surface: #141a22; --sunk: #1c242e; --ink: #e5eaf0; --muted: #94a2b3;
+    --line: #29333f; --grid: #1e2731; --healthy: #7ea8ff; --disease: #50cb83; --accent: #ff8a57;
+    --on-accent: #1a0d06; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0d1116; --surface: #141a22; --sunk: #1c242e; --ink: #e5eaf0; --muted: #94a2b3;
+  --line: #29333f; --grid: #1e2731; --healthy: #7ea8ff; --disease: #50cb83; --accent: #ff8a57;
+  --on-accent: #1a0d06; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--body); }
+.app { max-width: 1380px; margin: 0 auto; padding: 24px 20px 56px; display: grid; gap: 20px; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Header */
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 28px; }
+h1 { font: 700 clamp(25px, 3vw, 33px)/1.1 var(--display); letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 640px; }
+.presets .eyebrow { margin-right: 4px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); font-weight: 700; }
+.chip { font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; }
+.chip:hover { border-color: var(--muted); }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+
+/* Main layout */
+.layout { display: grid; grid-template-columns: 272px minmax(0, 1fr); gap: 24px; align-items: start; }
+.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); display: grid; gap: 22px; }
+.stage { display: grid; gap: 16px; min-width: 0; container-type: inline-size; }
+@media (max-width: 1020px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .rail { position: static; order: 2; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+}
+
+/* Rail controls */
+.grp { border-top: 3px solid var(--gc, var(--line)); padding-top: 10px; display: grid; gap: 14px; }
+.grp h3 { margin: 0; font: 600 15px var(--display); display: flex; align-items: center; gap: 8px; }
+.grp .note { margin: -6px 0 0; font-size: 12.5px; color: var(--muted); }
+.ctl { display: grid; gap: 4px; }
+.ctl-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ctl label { font-size: 14px; }
+.sym { font-family: var(--mono); color: var(--muted); font-size: 13px; }
+.num {
+  width: 5.8em; font: 500 13px var(--mono); padding: 3px 6px; text-align: right;
+  border: 1px solid var(--line); border-radius: 6px; background: var(--surface); font-variant-numeric: tabular-nums;
+}
+input[type="range"] { width: 100%; margin: 0; accent-color: var(--gc, var(--accent)); cursor: pointer; }
+.sample-box { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 12px; }
+.sample-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13.5px; }
+.sample-row b { font: 500 13.5px var(--mono); font-variant-numeric: tabular-nums; }
+.btn {
+  font-size: 13.5px; padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--surface); cursor: pointer; font-weight: 700; white-space: nowrap;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.06); }
+
+/* Chart panels */
+.charts { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(0, 1fr); gap: 16px; }
+@container (max-width: 820px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px 12px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 12px; }
+.panel h2 { font: 600 16px var(--display); margin: 0; }
+.panel-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 12.5px; }
+.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--muted); }
+.check input { accent-color: var(--accent); margin: 0; }
+svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+#dist-svg { cursor: ew-resize; }
+#roc-svg { cursor: crosshair; }
+.roc-wrap { max-width: 460px; width: 100%; margin: 0 auto; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 10px; border-radius: 2px; display: inline-block; }
+.sw.solid-h { background: color-mix(in srgb, var(--healthy) 32%, transparent); }
+.sw.hatch-h { background: repeating-linear-gradient(45deg, var(--healthy) 0 2px, transparent 2px 5px); }
+.sw.solid-d { background: color-mix(in srgb, var(--disease) 32%, transparent); }
+.sw.hatch-d { background: repeating-linear-gradient(45deg, var(--disease) 0 2px, transparent 2px 5px); }
+.sw.ln { height: 0; border-top: 2.5px solid var(--ink); border-radius: 0; }
+.sw.ln-m { height: 0; border-top: 1.5px solid var(--muted); border-radius: 0; }
+.sw.dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.sw.step { height: 8px; border: 1.5px solid var(--muted); border-bottom: 0; border-radius: 0; background: none; }
+
+/* Segmented control */
+.seg { position: relative; display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { font-size: 12.5px; padding: 4px 10px; cursor: pointer; color: var(--muted); }
+.seg input:checked + label { background: var(--sunk); color: var(--ink); font-weight: 700; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+/* Cutoff bar */
+.cutoff {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "lab num best" "range range range";
+  align-items: center; gap: 10px 14px; padding: 14px 18px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: var(--r);
+}
+.cutoff .lab { grid-area: lab; display: grid; min-width: 0; }
+.cutoff .lab label { font: 600 16px var(--display); }
+.cutoff .lab small { color: var(--muted); font-size: 12px; }
+#t { grid-area: range; accent-color: var(--accent); height: 26px; }
+#t-n { grid-area: num; width: 6.4em; font-size: 15px; padding: 6px 8px; }
+#best { grid-area: best; }
+@media (max-width: 560px) {
+  .cutoff { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "lab num" "range range" "best best"; }
+}
+
+/* Readout */
+.readout { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px 16px; display: grid; gap: 14px; }
+.readout-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px 16px; }
+.readout-head h2 { font: 600 16px var(--display); margin: 0; }
+.readout-head p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.primary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
+.big { display: grid; gap: 4px; }
+.big .k { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 700; color: var(--muted); }
+.big .v { font: 700 clamp(30px, 4vw, 40px)/1 var(--display); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.big .row { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.big .o { font: 400 12.5px var(--mono); color: var(--muted); }
+.bar { height: 6px; background: var(--sunk); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--gc); border-radius: 3px; transition: width 0.08s linear; }
+.big .cap { font-size: 12.5px; color: var(--muted); }
+.secondary { display: grid; grid-template-columns: repeat(auto-fit, minmax(128px, 1fr)); gap: 0; margin: 0; border-top: 1px solid var(--line); }
+.secondary > div { padding: 10px 12px 2px 0; display: grid; gap: 2px; align-content: start; }
+.secondary dt { font-size: 12px; font-weight: 700; color: var(--muted); }
+.secondary dd { margin: 0; font: 500 21px var(--mono); font-variant-numeric: tabular-nums; }
+.secondary .f { font-size: 11.5px; color: var(--muted); }
+@media (max-width: 480px) { .primary { grid-template-columns: minmax(0, 1fr); } }
+
+/* Matrix + story */
+.lower { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; }
+@media (max-width: 860px) { .lower { grid-template-columns: minmax(0, 1fr); } }
+.lower > section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px 16px; min-width: 0; }
+.lower h2 { font: 600 16px var(--display); margin: 0 0 8px; }
+.cm-wrap { overflow-x: auto; }
+.cm { width: 100%; border-collapse: separate; border-spacing: 5px; font-variant-numeric: tabular-nums; margin: -5px; width: calc(100% + 10px); }
+.cm th { font-size: 12px; color: var(--muted); font-weight: 700; text-align: left; padding: 2px 6px; vertical-align: bottom; }
+.cm th.rowh { vertical-align: middle; white-space: nowrap; }
+.cm td { padding: 9px 11px; border-radius: 8px; vertical-align: top; }
+.cm td b { font: 700 22px/1.15 var(--display); display: block; }
+.cm td span { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 700; }
+.cm td.tp { background: color-mix(in srgb, var(--disease) 22%, var(--surface)); }
+.cm td.fn { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--disease) 14%, var(--surface)) 0 7px, var(--surface) 7px 11px); border: 1px solid color-mix(in srgb, var(--disease) 35%, var(--surface)); }
+.cm td.fp { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--healthy) 14%, var(--surface)) 0 7px, var(--surface) 7px 11px); border: 1px solid color-mix(in srgb, var(--healthy) 35%, var(--surface)); }
+.cm td.tn { background: color-mix(in srgb, var(--healthy) 22%, var(--surface)); }
+.cm td.tot { color: var(--muted); font: 500 14px var(--mono); vertical-align: middle; }
+.story p { margin: 0 0 10px; max-width: 68ch; }
+.story ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.story li { position: relative; padding-left: 16px; font-size: 14px; color: var(--ink); max-width: 68ch; }
+.story li::before { content: ""; position: absolute; left: 0; top: 0.6em; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+.num-hl { font-family: var(--mono); font-size: 0.94em; }
+
+/* Concepts */
+.concepts { border-top: 1px solid var(--line); padding-top: 18px; }
+.concepts h2 { font: 600 18px var(--display); margin: 0 0 12px; }
+.concepts dl { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 28px; }
+.concepts dt { font-weight: 700; margin-bottom: 2px; }
+.concepts dd { margin: 0; color: var(--muted); font-size: 14px; max-width: 60ch; }
+
+/* SVG text and strokes */
+.gl { stroke: var(--grid); stroke-width: 1; }
+.ax { stroke: var(--muted); stroke-width: 1; }
+.tk { fill: var(--muted); font: 11px var(--mono); }
+.at { fill: var(--muted); font: 12px var(--body); }
+.curve { fill: none; stroke-width: 2.6; stroke-linejoin: round; }
+.hist { fill: none; stroke-width: 1.2; stroke-opacity: 0.85; stroke-linejoin: miter; }
+.cut { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; }
+.pill { fill: var(--on-accent); font: 500 12px var(--mono); }
+.hint { fill: var(--muted); font: 700 11px var(--body); letter-spacing: 0.06em; text-transform: uppercase; }
+.glabel { font: 700 13.5px var(--body); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.diag { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.diag-l { fill: var(--muted); font: 11px var(--body); }
+.theo { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linejoin: round; }
+.emp { fill: none; stroke: var(--muted); stroke-width: 1.5; }
+.xh { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3 3; }
+.jseg { stroke: var(--accent); stroke-width: 2; stroke-dasharray: 1 3; stroke-linecap: round; }
+.op { fill: var(--accent); stroke: var(--surface); stroke-width: 2.5; }
+.op2 { fill: var(--surface); stroke: var(--muted); stroke-width: 1.6; }
+.opl { fill: var(--ink); font: 500 11.5px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 4px; stroke-linejoin: round; }
+.aucl { fill: var(--ink); font: 700 13px var(--body); }
+.jl { fill: var(--accent); font: 700 11.5px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
+
+@media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="top">
+    <div>
+      <h1>ROC Threshold Simulator</h1>
+      <p class="lede">Reshape the healthy and diseased populations, change how many patients you sample, and move the cutoff. The score distributions, the ROC curve and every metric update together.</p>
+    </div>
+    <div class="presets" role="group" aria-label="Scenarios">
+      <span class="eyebrow">Scenarios</span>
+      <button class="chip" type="button" data-p="example">Classic overlap</button>
+      <button class="chip" type="button" data-p="excellent">Excellent test</button>
+      <button class="chip" type="button" data-p="weak">Weak test</button>
+      <button class="chip" type="button" data-p="none">No discrimination</button>
+      <button class="chip" type="button" data-p="unequal">Unequal spread</button>
+      <button class="chip" type="button" data-p="rare">Rare disease</button>
+      <button class="chip" type="button" data-p="small">Small study</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="rail" aria-label="Population settings">
+      <section class="grp" style="--gc: var(--healthy)">
+        <h3><span class="sw" style="background: var(--healthy); width: 10px; height: 10px; border-radius: 50%"></span>Healthy group</h3>
+        <div class="ctl">
+          <div class="ctl-head"><label for="mH">Mean score <span class="sym">μ</span></label><input class="num" id="mH-n" type="number" step="0.05" min="-3" max="5" aria-label="Healthy mean score"></div>
+          <input type="range" id="mH" min="-3" max="5" step="0.05">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="sH">Spread (SD) <span class="sym">σ</span></label><input class="num" id="sH-n" type="number" step="0.05" min="0.3" max="2.5" aria-label="Healthy standard deviation"></div>
+          <input type="range" id="sH" min="0.3" max="2.5" step="0.05">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="nH">Sample size <span class="sym">n</span></label><input class="num" id="nH-n" type="number" step="1" min="5" max="5000" aria-label="Healthy sample size"></div>
+          <input type="range" id="nH" min="0" max="1000" step="1">
+        </div>
+      </section>
+
+      <section class="grp" style="--gc: var(--disease)">
+        <h3><span class="sw" style="background: var(--disease); width: 10px; height: 10px; border-radius: 50%"></span>Diseased group</h3>
+        <div class="ctl">
+          <div class="ctl-head"><label for="mD">Mean score <span class="sym">μ</span></label><input class="num" id="mD-n" type="number" step="0.05" min="-3" max="5" aria-label="Diseased mean score"></div>
+          <input type="range" id="mD" min="-3" max="5" step="0.05">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="sD">Spread (SD) <span class="sym">σ</span></label><input class="num" id="sD-n" type="number" step="0.05" min="0.3" max="2.5" aria-label="Diseased standard deviation"></div>
+          <input type="range" id="sD" min="0.3" max="2.5" step="0.05">
+        </div>
+        <div class="ctl">
+          <div class="ctl-head"><label for="nD">Sample size <span class="sym">n</span></label><input class="num" id="nD-n" type="number" step="1" min="5" max="5000" aria-label="Diseased sample size"></div>
+          <input type="range" id="nD" min="0" max="1000" step="1">
+        </div>
+      </section>
+
+      <section class="sample-box" aria-label="Random sample">
+        <div class="sample-row"><span>Patients sampled</span><b id="tot-n">400</b></div>
+        <div class="sample-row"><span>Prevalence in sample</span><b id="prev">50.0%</b></div>
+        <div class="sample-row"><span>Random draw</span><b id="draw">#1</b></div>
+        <button class="btn" type="button" id="resample">Resample patients</button>
+      </section>
+    </aside>
+
+    <main class="stage">
+      <div class="charts">
+        <figure class="panel dist" style="margin: 0">
+          <div class="panel-head">
+            <h2>Score distributions</h2>
+            <div class="panel-tools">
+              <div class="seg" role="radiogroup" aria-label="Vertical axis">
+                <input type="radio" name="ymode" id="ym-d" value="density" checked><label for="ym-d">Density</label>
+                <input type="radio" name="ymode" id="ym-c" value="count"><label for="ym-c">Patient counts</label>
+              </div>
+              <label class="check"><input type="checkbox" id="showHist" checked>Sample histograms</label>
+            </div>
+          </div>
+          <svg id="dist-svg" class="chart" viewBox="0 0 640 340" role="img" aria-label="Healthy and diseased score distributions with the decision cutoff"></svg>
+          <figcaption class="legend">
+            <span><i class="sw solid-h"></i>True negative</span>
+            <span><i class="sw hatch-h"></i>False positive</span>
+            <span><i class="sw solid-d"></i>True positive</span>
+            <span><i class="sw hatch-d"></i>False negative</span>
+            <span><i class="sw step"></i>Sample histogram</span>
+          </figcaption>
+        </figure>
+
+        <figure class="panel roc" style="margin: 0">
+          <div class="panel-head">
+            <h2>ROC curve</h2>
+            <div class="panel-tools">
+              <label class="check"><input type="checkbox" id="showEmp" checked>Sample curve</label>
+            </div>
+          </div>
+          <div class="roc-wrap">
+            <svg id="roc-svg" class="chart" viewBox="0 0 360 354" role="img" aria-label="ROC curve with the current operating point"></svg>
+          </div>
+          <figcaption class="legend">
+            <span><i class="sw ln"></i>Population</span>
+            <span><i class="sw ln-m"></i>Sample</span>
+            <span><i class="sw dot"></i>Current cutoff</span>
+          </figcaption>
+        </figure>
+      </div>
+
+      <div class="cutoff">
+        <div class="lab"><label for="t">Decision cutoff</label><small>Positive when score ≥ cutoff. Drag on either chart too.</small></div>
+        <input type="range" id="t" min="-3" max="5" step="0.01">
+        <input class="num" id="t-n" type="number" step="0.01" aria-label="Decision cutoff value">
+        <button class="btn primary" type="button" id="best">Best cutoff (max J)</button>
+      </div>
+
+      <section class="readout" aria-live="off">
+        <div class="readout-head">
+          <div>
+            <h2>Performance at this cutoff</h2>
+            <p id="basis-cap">Counted from the 400 sampled patients</p>
+          </div>
+          <div class="seg" role="radiogroup" aria-label="Compute metrics from">
+            <input type="radio" name="basis" id="b-s" value="sample" checked><label for="b-s">Sample</label>
+            <input type="radio" name="basis" id="b-p" value="population"><label for="b-p">Population</label>
+          </div>
+        </div>
+        <div class="primary">
+          <div class="big" style="--gc: var(--disease)">
+            <span class="k">Sensitivity · TPR</span>
+            <div class="row"><span class="v" id="v-sens">–</span><span class="o" id="o-sens"></span></div>
+            <div class="bar"><i id="b-sens"></i></div>
+            <span class="cap">TP ÷ (TP + FN): diseased patients correctly flagged</span>
+          </div>
+          <div class="big" style="--gc: var(--healthy)">
+            <span class="k">Specificity · TNR</span>
+            <div class="row"><span class="v" id="v-spec">–</span><span class="o" id="o-spec"></span></div>
+            <div class="bar"><i id="b-spec"></i></div>
+            <span class="cap">TN ÷ (TN + FP): healthy patients correctly cleared</span>
+          </div>
+        </div>
+        <dl class="secondary">
+          <div><dt>PPV</dt><dd id="v-ppv">–</dd><span class="f">TP ÷ all positives</span></div>
+          <div><dt>NPV</dt><dd id="v-npv">–</dd><span class="f">TN ÷ all negatives</span></div>
+          <div><dt>Accuracy</dt><dd id="v-acc">–</dd><span class="f">(TP + TN) ÷ N</span></div>
+          <div><dt>Youden's J</dt><dd id="v-j">–</dd><span class="f">Sens + Spec − 1</span></div>
+          <div><dt>LR+</dt><dd id="v-lr">–</dd><span class="f">Sens ÷ (1 − Spec)</span></div>
+          <div><dt>AUC</dt><dd id="v-auc">–</dd><span class="f" id="o-auc">Same at every cutoff</span></div>
+        </dl>
+      </section>
+
+      <div class="lower">
+        <section>
+          <h2>Confusion matrix</h2>
+          <div class="cm-wrap">
+            <table class="cm">
+              <thead>
+                <tr><th></th><th id="cm-pos">Test positive</th><th id="cm-neg">Test negative</th><th>Total</th></tr>
+              </thead>
+              <tbody>
+                <tr><th class="rowh" scope="row" style="color: var(--disease)">Diseased</th>
+                  <td class="tp"><span>TP</span><b id="cm-tp">–</b></td>
+                  <td class="fn"><span>FN</span><b id="cm-fn">–</b></td>
+                  <td class="tot" id="cm-rd">–</td></tr>
+                <tr><th class="rowh" scope="row" style="color: var(--healthy)">Healthy</th>
+                  <td class="fp"><span>FP</span><b id="cm-fp">–</b></td>
+                  <td class="tn"><span>TN</span><b id="cm-tn">–</b></td>
+                  <td class="tot" id="cm-rh">–</td></tr>
+                <tr><th class="rowh" scope="row">Total</th>
+                  <td class="tot" id="cm-cp">–</td><td class="tot" id="cm-cn">–</td><td class="tot" id="cm-all">–</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+        <section class="story">
+          <h2>What the numbers say</h2>
+          <p id="story"></p>
+          <ul id="insights"></ul>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <section class="concepts">
+    <h2>Key ideas</h2>
+    <dl>
+      <div><dt>Sensitivity (true positive rate)</dt><dd>The share of diseased patients whose score is at or above the cutoff. Raising the cutoff lowers it.</dd></div>
+      <div><dt>Specificity (true negative rate)</dt><dd>The share of healthy patients whose score is below the cutoff. Raising the cutoff raises it, so the two always trade off.</dd></div>
+      <div><dt>ROC curve</dt><dd>Every possible cutoff drawn as one point: false positive rate across, true positive rate up. Moving the cutoff slides the point along the curve. Only changing the populations changes the curve itself.</dd></div>
+      <div><dt>AUC</dt><dd>The area under the ROC curve. It equals the chance that a randomly chosen diseased patient scores higher than a randomly chosen healthy one. For two normal curves it is Φ((μ<sub>D</sub> − μ<sub>H</sub>) ÷ √(σ<sub>H</sub>² + σ<sub>D</sub>²)).</dd></div>
+      <div><dt>Predictive values</dt><dd>PPV and NPV also depend on how common the disease is. Shrink the diseased group and PPV falls even though sensitivity and specificity stay the same.</dd></div>
+      <div><dt>Sample versus population</dt><dd>Smooth curves are the true populations. Histograms and the stepped ROC curve come from a finite random sample, so small groups give jagged, unstable estimates.</dd></div>
+    </dl>
+  </section>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const POOL = 5000, NMIN = 5, NMAX = 5000, LOGR = Math.log(NMAX / NMIN);
+  const MODEL_KEYS = ["mH", "sH", "nH", "mD", "sD", "nD", "t"];
+  const S = { mH: 0.2, sH: 0.75, nH: 200, mD: 1.8, sD: 0.75, nD: 200, t: 1, seed: 1,
+              yMode: "density", basis: "sample", showHist: true, showEmp: true, preset: "example" };
+  const PRESETS = {
+    example:   { mH: 0.2, sH: 0.75, mD: 1.8, sD: 0.75, nH: 200,  nD: 200, t: 1 },
+    excellent: { mH: 0,   sH: 0.8,  mD: 3,   sD: 0.8,  nH: 200,  nD: 200, t: 1.5 },
+    weak:      { mH: 0,   sH: 1,    mD: 0.7, sD: 1,    nH: 200,  nD: 200, t: 0.35 },
+    none:      { mH: 1,   sH: 1,    mD: 1,   sD: 1,    nH: 200,  nD: 200, t: 1 },
+    unequal:   { mH: 0,   sH: 0.6,  mD: 1.6, sD: 1.6,  nH: 200,  nD: 200, t: 0.9 },
+    rare:      { mH: 0.2, sH: 0.75, mD: 1.8, sD: 0.75, nH: 2000, nD: 40,  t: 1 },
+    small:     { mH: 0.2, sH: 0.75, mD: 1.8, sD: 0.75, nH: 15,   nD: 15,  t: 1 }
+  };
+
+  /* ---------- maths ---------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = a + 0x6D2B79F5 | 0;
+      let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+  }
+  // Standard-normal draws, fixed per seed, so moving μ or σ shifts the same patients instead of re-rolling them
+  function makePool(seed) {
+    const r = mulberry32(seed * 7919 + 13);
+    const g = () => { let u = 0; while (u === 0) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
+    const zH = new Float64Array(POOL), zD = new Float64Array(POOL);
+    for (let i = 0; i < POOL; i++) { zH[i] = g(); zD[i] = g(); }
+    return { zH, zD };
+  }
+  let pool = makePool(S.seed);
+
+  function erf(x) {
+    const s = Math.sign(x); x = Math.abs(x);
+    const t = 1 / (1 + 0.3275911 * x);
+    const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+    return s * y;
+  }
+  const Phi = z => 0.5 * (1 + erf(z / Math.SQRT2));
+  const pdf = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2) / (s * 2.5066282746310002);
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const nToR = n => Math.round(1000 * Math.log(n / NMIN) / LOGR);
+  const rToN = r => {
+    const n = NMIN * Math.exp(r / 1000 * LOGR);
+    return n < 50 ? Math.round(n) : n < 500 ? Math.round(n / 5) * 5 : Math.round(n / 10) * 10;
+  };
+  function niceStep(range, target) {
+    const raw = range / target, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag;
+  }
+  function domainOf() {
+    const lo = Math.min(-3, S.mH - 3.5 * S.sH, S.mD - 3.5 * S.sD);
+    const hi = Math.max(5, S.mH + 3.5 * S.sH, S.mD + 3.5 * S.sD);
+    return [Math.floor(lo * 2) / 2, Math.ceil(hi * 2) / 2];
+  }
+
+  function empROC(H, D) {
+    const nH = H.length, nD = D.length, N = nH + nD;
+    const val = i => (i < nH ? H[i] : D[i - nH]);
+    const idx = new Array(N);
+    for (let i = 0; i < N; i++) idx[i] = i;
+    idx.sort((a, b) => val(b) - val(a));
+    const pts = [[0, 0]], cuts = [];
+    let tp = 0, fp = 0, auc = 0, pF = 0, pT = 0, i = 0;
+    while (i < N) {
+      const x = val(idx[i]);
+      while (i < N && val(idx[i]) === x) { idx[i] < nH ? fp++ : tp++; i++; }
+      const F = fp / nH, T = tp / nD;
+      auc += (F - pF) * (T + pT) / 2; pF = F; pT = T;
+      pts.push([F, T]); cuts.push(x);
+    }
+    return { pts, cuts, auc };
+  }
+
+  function derive(m, nH, nD) {
+    m.ppv = m.TP + m.FP > 0 ? m.TP / (m.TP + m.FP) : NaN;
+    m.npv = m.TN + m.FN > 0 ? m.TN / (m.TN + m.FN) : NaN;
+    m.acc = (m.TP + m.TN) / (nH + nD);
+    m.J = m.sens + m.spec - 1;
+    m.lr = m.spec < 1 ? m.sens / (1 - m.spec) : Infinity;
+    return m;
+  }
+
+  function compute() {
+    const { mH, sH, mD, sD, nH, nD, t } = S;
+    const [lo, hi] = domainOf();
+    const H = new Float64Array(nH), D = new Float64Array(nD);
+    for (let i = 0; i < nH; i++) H[i] = mH + sH * pool.zH[i];
+    for (let i = 0; i < nD; i++) D[i] = mD + sD * pool.zD[i];
+    let TP = 0, FP = 0;
+    for (let i = 0; i < nD; i++) if (D[i] >= t) TP++;
+    for (let i = 0; i < nH; i++) if (H[i] >= t) FP++;
+    const emp = empROC(H, D);
+    const sample = derive({ TP, FP, FN: nD - TP, TN: nH - FP, sens: TP / nD, spec: (nH - FP) / nH, auc: emp.auc }, nH, nD);
+    const se = 1 - Phi((t - mD) / sD), sp = Phi((t - mH) / sH);
+    const pop = derive({ TP: se * nD, FN: (1 - se) * nD, FP: (1 - sp) * nH, TN: sp * nH, sens: se, spec: sp,
+                         auc: Phi((mD - mH) / Math.hypot(sH, sD)) }, nH, nD);
+    const T1 = Math.max(mH + 6 * sH, mD + 6 * sD), T0 = Math.min(mH - 6 * sH, mD - 6 * sD);
+    const theo = [];
+    for (let i = 0; i <= 320; i++) {
+      const tt = T1 - (T1 - T0) * i / 320;
+      theo.push({ f: 1 - Phi((tt - mH) / sH), s: 1 - Phi((tt - mD) / sD), t: tt });
+    }
+    const isS = S.basis === "sample";
+    return { lo, hi, H, D, emp, theo, sample, pop, cur: isS ? sample : pop, other: isS ? pop : sample, prev: nD / (nH + nD) };
+  }
+
+  /* ---------- formatting ---------- */
+  const minus = s => s.replace(/-/g, "−");
+  const pct = v => (isFinite(v) ? (v * 100).toFixed(1) + "%" : "–");
+  const P = n => n.toFixed(1);
+  const fmtTick = (v, step) => {
+    if (Math.abs(v) < 1e-9) return "0";
+    const d = step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3;
+    return minus(v.toFixed(d));
+  };
+  const cnt = v => (S.basis === "sample" ? String(Math.round(v)) : "≈" + Math.round(v));
+  const $ = id => document.getElementById(id);
+  const txt = (id, s) => { $(id).textContent = s; };
+
+  /* ---------- distribution chart ---------- */
+  const DW = 640, DH = 340, DM = { l: 56, r: 16, t: 40, b: 46 };
+  function drawDist(c) {
+    const pw = DW - DM.l - DM.r, ph = DH - DM.t - DM.b, lo = c.lo, hi = c.hi, span = hi - lo;
+    const X = v => DM.l + (v - lo) / span * pw;
+    let bw = 3 * Math.min(S.sH, S.sD) * Math.pow(Math.max(S.nH, S.nD), -1 / 3);
+    const nb = clamp(Math.round(span / bw), 12, 90); bw = span / nb;
+    const bin = a => { const h = new Array(nb).fill(0); for (let i = 0; i < a.length; i++) { const j = Math.floor((a[i] - lo) / bw); if (j >= 0 && j < nb) h[j]++; } return h; };
+    const hH = bin(c.H), hD = bin(c.D);
+    const isC = S.yMode === "count";
+    const kH = isC ? S.nH * bw : 1, kD = isC ? S.nD * bw : 1;
+    const fH = x => pdf(x, S.mH, S.sH) * kH, fD = x => pdf(x, S.mD, S.sD) * kD;
+    const vH = i => (isC ? hH[i] : hH[i] / (S.nH * bw)), vD = i => (isC ? hD[i] : hD[i] / (S.nD * bw));
+    let top = Math.max(fH(S.mH), fD(S.mD));
+    if (S.showHist) for (let i = 0; i < nb; i++) top = Math.max(top, vH(i), vD(i));
+    const ys = niceStep(top * 1.12, 5), ymax = Math.ceil(top * 1.12 / ys) * ys;
+    const Y = v => DM.t + ph - v / ymax * ph;
+    const y0 = P(Y(0));
+    const area = (f, a, b) => {
+      if (b - a <= 1e-9) return "";
+      const N = Math.max(2, Math.ceil(220 * (b - a) / span));
+      let d = `M${P(X(a))},${y0}`;
+      for (let i = 0; i <= N; i++) { const x = a + (b - a) * i / N; d += `L${P(X(x))},${P(Y(f(x)))}`; }
+      return d + `L${P(X(b))},${y0}Z`;
+    };
+    const line = f => { let d = ""; for (let i = 0; i <= 280; i++) { const x = lo + span * i / 280; d += (i ? "L" : "M") + P(X(x)) + "," + P(Y(f(x))); } return d; };
+    const step = v => {
+      let d = `M${P(X(lo))},${y0}`;
+      for (let i = 0; i < nb; i++) { const y = P(Y(v(i))); d += `L${P(X(lo + i * bw))},${y}L${P(X(lo + (i + 1) * bw))},${y}`; }
+      return d + `L${P(X(hi))},${y0}`;
+    };
+    const t = S.t, xt = X(t);
+    let s = `<defs>
+      <pattern id="hatchH" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" style="fill:var(--healthy);fill-opacity:.6"/></pattern>
+      <pattern id="hatchD" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="2" height="6" style="fill:var(--disease);fill-opacity:.6"/></pattern>
+    </defs>`;
+    for (let v = 0; v <= ymax + 1e-9; v += ys) {
+      const y = P(Y(v));
+      s += `<line class="gl" x1="${DM.l}" x2="${DW - DM.r}" y1="${y}" y2="${y}"/><text class="tk" x="${DM.l - 8}" y="${y}" dy="0.33em" text-anchor="end">${fmtTick(v, ys)}</text>`;
+    }
+    const xs = niceStep(span, 8);
+    for (let v = Math.ceil(lo / xs - 1e-9) * xs; v <= hi + 1e-9; v += xs) {
+      const x = P(X(v));
+      s += `<line class="ax" x1="${x}" x2="${x}" y1="${DM.t + ph}" y2="${DM.t + ph + 5}"/><text class="tk" x="${x}" y="${DM.t + ph + 18}" text-anchor="middle">${fmtTick(v, xs)}</text>`;
+    }
+    // Outcome regions: TN and TP solid, FP and FN hatched
+    s += `<path d="${area(fH, lo, t)}" style="fill:var(--healthy);fill-opacity:.2"/>`;
+    s += `<path d="${area(fD, t, hi)}" style="fill:var(--disease);fill-opacity:.2"/>`;
+    const fp = area(fH, t, hi), fn = area(fD, lo, t);
+    s += `<path d="${fp}" style="fill:var(--healthy);fill-opacity:.08"/><path d="${fp}" fill="url(#hatchH)"/>`;
+    s += `<path d="${fn}" style="fill:var(--disease);fill-opacity:.08"/><path d="${fn}" fill="url(#hatchD)"/>`;
+    if (S.showHist) {
+      s += `<path class="hist" d="${step(vH)}" style="stroke:var(--healthy)"/><path class="hist" d="${step(vD)}" style="stroke:var(--disease)"/>`;
+    }
+    s += `<path class="curve" d="${line(fH)}" style="stroke:var(--healthy)"/><path class="curve" d="${line(fD)}" style="stroke:var(--disease)"/>`;
+    s += `<line class="ax" x1="${DM.l}" x2="${DW - DM.r}" y1="${y0}" y2="${y0}"/>`;
+
+    // Group labels above each peak, pushed apart if they would collide
+    let xh = X(S.mH), xd = X(S.mD), ah = "middle", ad = "middle";
+    if (Math.abs(xh - xd) < 80) {
+      const mid = (xh + xd) / 2, hLeft = S.mH <= S.mD;
+      xh = hLeft ? mid - 6 : mid + 6; xd = hLeft ? mid + 6 : mid - 6;
+      ah = hLeft ? "end" : "start"; ad = hLeft ? "start" : "end";
+    }
+    xh = clamp(xh, DM.l + 34, DW - DM.r - 34); xd = clamp(xd, DM.l + 38, DW - DM.r - 38);
+    s += `<text class="glabel" x="${P(xh)}" y="${P(Y(fH(S.mH)) - 10)}" text-anchor="${ah}" style="fill:var(--healthy)">Healthy</text>`;
+    s += `<text class="glabel" x="${P(xd)}" y="${P(Y(fD(S.mD)) - 10)}" text-anchor="${ad}" style="fill:var(--disease)">Diseased</text>`;
+
+    // Cutoff line, pill label and direction hints
+    const px = clamp(xt, DM.l + 46, DW - DM.r - 46), py = DM.t - 32;
+    s += `<line class="cut" x1="${P(xt)}" x2="${P(xt)}" y1="${py + 22}" y2="${y0}"/>`;
+    s += `<rect x="${P(px - 46)}" y="${py}" width="92" height="22" rx="11" style="fill:var(--accent)"/>`;
+    s += `<text class="pill" x="${P(px)}" y="${py + 11}" dy="0.35em" text-anchor="middle">cutoff ${minus(t.toFixed(2))}</text>`;
+    if (px - 46 - DM.l > 96) s += `<text class="hint" x="${P(px - 56)}" y="${py + 11}" dy="0.35em" text-anchor="end">← test negative</text>`;
+    if (DW - DM.r - (px + 46) > 96) s += `<text class="hint" x="${P(px + 56)}" y="${py + 11}" dy="0.35em">test positive →</text>`;
+    s += `<circle cx="${P(xt)}" cy="${y0}" r="6" class="op"/>`;
+    s += `<text class="at" x="${DW - DM.r}" y="${DH - 6}" text-anchor="end">Diagnostic score / biomarker level →</text>`;
+    s += `<text class="at" transform="translate(14 ${DM.t + ph / 2}) rotate(-90)" text-anchor="middle">${isC ? "Patients per bin" : "Probability density"}</text>`;
+    $("dist-svg").innerHTML = s;
+  }
+
+  /* ---------- ROC chart ---------- */
+  const RW = 360, RH = 354, RM = { l: 50, r: 14, t: 12, b: 44 };
+  const RPW = RW - RM.l - RM.r, RPH = RH - RM.t - RM.b;
+  function drawROC(c) {
+    const X = f => RM.l + f * RPW, Y = v => RM.t + (1 - v) * RPH;
+    let s = "";
+    for (let i = 0; i <= 5; i++) {
+      const v = i / 5, lbl = i === 0 ? "0" : i === 5 ? "1" : v.toFixed(1);
+      s += `<line class="gl" x1="${P(X(v))}" x2="${P(X(v))}" y1="${RM.t}" y2="${RM.t + RPH}"/>`;
+      s += `<line class="gl" x1="${RM.l}" x2="${RM.l + RPW}" y1="${P(Y(v))}" y2="${P(Y(v))}"/>`;
+      s += `<text class="tk" x="${P(X(v))}" y="${RM.t + RPH + 16}" text-anchor="middle">${lbl}</text>`;
+      s += `<text class="tk" x="${RM.l - 7}" y="${P(Y(v))}" dy="0.33em" text-anchor="end">${lbl}</text>`;
+    }
+    s += `<rect x="${RM.l}" y="${RM.t}" width="${RPW}" height="${RPH}" style="fill:none;stroke:var(--line)"/>`;
+    // Area under the population curve
+    let d = `M${P(X(0))},${P(Y(0))}`;
+    for (const p of c.theo) d += `L${P(X(p.f))},${P(Y(p.s))}`;
+    d += `L${P(X(1))},${P(Y(1))}`;
+    s += `<path d="${d}L${P(X(1))},${P(Y(0))}Z" style="fill:var(--accent);fill-opacity:.09"/>`;
+    s += `<line class="diag" x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}"/>`;
+    s += `<text class="diag-l" transform="translate(${P(X(0.8))} ${P(Y(0.8) + 13)}) rotate(-45)" text-anchor="middle">chance</text>`;
+    if (S.showEmp) {
+      let e = "";
+      c.emp.pts.forEach((p, i) => { e += (i ? "L" : "M") + P(X(p[0])) + "," + P(Y(p[1])); });
+      s += `<path class="emp" d="${e}"/>`;
+    }
+    s += `<path class="theo" d="${d}"/>`;
+    s += `<text class="aucl" x="${P(X(0.96))}" y="${P(Y(0.05))}" text-anchor="end">AUC ${c.cur.auc.toFixed(3)}</text>`;
+
+    const o = c.other, of = 1 - o.spec, os = o.sens;
+    if (S.basis === "population" ? S.showEmp : true) s += `<circle class="op2" cx="${P(X(of))}" cy="${P(Y(os))}" r="4.5"/>`;
+    const f = 1 - c.cur.spec, v = c.cur.sens;
+    s += `<line class="xh" x1="${P(X(f))}" y1="${P(Y(v))}" x2="${P(X(f))}" y2="${P(Y(0))}"/>`;
+    s += `<line class="xh" x1="${P(X(f))}" y1="${P(Y(v))}" x2="${P(X(0))}" y2="${P(Y(v))}"/>`;
+    if (v - f > 0.06) {
+      s += `<line class="jseg" x1="${P(X(f))}" y1="${P(Y(f))}" x2="${P(X(f))}" y2="${P(Y(v))}"/>`;
+      s += `<text class="jl" x="${P(X(f) + 6)}" y="${P(Y((f + v) / 2))}" dy="0.33em">J</text>`;
+    }
+    s += `<circle class="op" cx="${P(X(f))}" cy="${P(Y(v))}" r="7"/>`;
+    const right = f < 0.55, below = v > 0.86;
+    s += `<text class="opl" x="${P(X(f) + (right ? 12 : -12))}" y="${P(Y(v) + (below ? 20 : -12))}" text-anchor="${right ? "start" : "end"}">(${f.toFixed(2)}, ${v.toFixed(2)})</text>`;
+    s += `<text class="at" x="${RM.l + RPW / 2}" y="${RH - 8}" text-anchor="middle">False positive rate (1 − specificity)</text>`;
+    s += `<text class="at" transform="translate(14 ${RM.t + RPH / 2}) rotate(-90)" text-anchor="middle">True positive rate (sensitivity)</text>`;
+    $("roc-svg").innerHTML = s;
+  }
+
+  /* ---------- readouts ---------- */
+  function drawReadout(c) {
+    const m = c.cur, o = c.other, isS = S.basis === "sample";
+    const oname = isS ? "population" : "sample";
+    txt("basis-cap", isS ? `Counted from the ${S.nH + S.nD} sampled patients` : "Expected values from the smooth population curves");
+    txt("v-sens", pct(m.sens)); txt("o-sens", `${oname} ${pct(o.sens)}`); $("b-sens").style.width = (m.sens * 100).toFixed(2) + "%";
+    txt("v-spec", pct(m.spec)); txt("o-spec", `${oname} ${pct(o.spec)}`); $("b-spec").style.width = (m.spec * 100).toFixed(2) + "%";
+    txt("v-ppv", pct(m.ppv)); txt("v-npv", pct(m.npv)); txt("v-acc", pct(m.acc));
+    txt("v-j", minus(m.J.toFixed(3)));
+    txt("v-lr", isFinite(m.lr) ? m.lr.toFixed(2) : "∞");
+    txt("v-auc", m.auc.toFixed(3)); txt("o-auc", `${oname} ${o.auc.toFixed(3)} · same at every cutoff`);
+
+    txt("cm-pos", `Test positive (≥ ${minus(S.t.toFixed(2))})`); txt("cm-neg", `Test negative (< ${minus(S.t.toFixed(2))})`);
+    txt("cm-tp", cnt(m.TP)); txt("cm-fn", cnt(m.FN)); txt("cm-fp", cnt(m.FP)); txt("cm-tn", cnt(m.TN));
+    txt("cm-rd", String(S.nD)); txt("cm-rh", String(S.nH));
+    txt("cm-cp", cnt(m.TP + m.FP)); txt("cm-cn", cnt(m.FN + m.TN)); txt("cm-all", String(S.nH + S.nD));
+
+    txt("tot-n", String(S.nH + S.nD)); txt("prev", pct(c.prev)); txt("draw", "#" + S.seed);
+
+    // Narrative
+    const tS = minus(S.t.toFixed(2));
+    let story = `At a cutoff of ${tS}, the test flags ${pct(m.sens)} of diseased patients (${cnt(m.TP)} of ${S.nD}) and wrongly flags ${pct(1 - m.spec)} of healthy ones (${cnt(m.FP)} of ${S.nH}). `;
+    story += m.TP + m.FP > 0
+      ? `With ${pct(c.prev)} of patients diseased, a positive result is right ${pct(m.ppv)} of the time and a negative result ${pct(m.npv)} of the time.`
+      : `Nobody tests positive at this cutoff, so the test misses every diseased patient.`;
+    txt("story", story);
+
+    const ins = [], pop = c.pop, minN = Math.min(S.nH, S.nD), ratio = Math.max(S.sH, S.sD) / Math.min(S.sH, S.sD);
+    if (S.mD < S.mH) ins.push(`Diseased patients score lower than healthy ones here, so "positive when score ≥ cutoff" does worse than chance (AUC below 0.5). Swap the means, or read the test the other way round.`);
+    else if (pop.auc < 0.6) ins.push(`The two populations overlap almost completely (AUC ${pop.auc.toFixed(2)}). Every cutoff trades true positives for false positives at about the same rate, so the ROC curve hugs the diagonal.`);
+    else if (pop.auc > 0.97) ins.push(`The populations barely overlap (AUC ${pop.auc.toFixed(3)}), so a wide band of cutoffs gives high sensitivity and specificity together. The ROC curve bends right into the top-left corner.`);
+    if (c.prev < 0.1 && m.TP + m.FP > 0) {
+      ins.push(m.FP > m.TP
+        ? `Only ${pct(c.prev)} of the sample is diseased. Even at ${pct(m.spec)} specificity, false positives (${cnt(m.FP)}) outnumber true positives (${cnt(m.TP)}), so PPV drops to ${pct(m.ppv)}.`
+        : `Only ${pct(c.prev)} of the sample is diseased, yet PPV holds at ${pct(m.ppv)} because specificity is very high. Lower the cutoff and watch false positives take over.`);
+    }
+    if (minN < 40) ins.push(`The smaller group has only ${minN} patients, so each patient moves the sample estimate by ${pct(1 / minN)}. Press Resample to see how much the stepped ROC curve and the sample AUC change between draws.`);
+    if (ratio >= 1.6 && S.mD >= S.mH) ins.push(`The groups have unequal spreads (σ ratio ${ratio.toFixed(1)}). The density curves cross twice, and the ROC curve turns lopsided, dipping toward the diagonal at one end.`);
+    if (ins.length < 2) {
+      ins.push(m.J > 0 && Math.abs(m.J - bestJ(c)) < 0.005
+        ? `This cutoff maximises Youden's J (${m.J.toFixed(3)}), the point on the ROC curve farthest above the chance line.`
+        : `Drag the cutoff right: specificity rises, sensitivity falls, and the point on the ROC curve slides down toward the origin. The curve itself stays put.`);
+    }
+    $("insights").innerHTML = ins.slice(0, 3).map(t => `<li>${t.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</li>`).join("");
+  }
+
+  /* ---------- best cutoff ---------- */
+  function bestCut(c) {
+    let best = -Infinity, bt = S.t;
+    if (S.basis === "sample") {
+      c.emp.cuts.forEach((x, k) => { const p = c.emp.pts[k + 1], J = p[1] - p[0]; if (J > best + 1e-12) { best = J; bt = x; } });
+    } else {
+      for (let i = 0; i <= 4000; i++) {
+        const t = c.lo + (c.hi - c.lo) * i / 4000;
+        const J = Phi((t - S.mH) / S.sH) - Phi((t - S.mD) / S.sD);
+        if (J > best) { best = J; bt = t; }
+      }
+    }
+    return { t: bt, J: best };
+  }
+  const bestJ = c => bestCut(c).J;
+
+  /* ---------- state + inputs ---------- */
+  const CTL = [
+    { k: "mH", dec: 2, min: -3, max: 5 }, { k: "sH", dec: 2, min: 0.3, max: 2.5 }, { k: "nH", log: true },
+    { k: "mD", dec: 2, min: -3, max: 5 }, { k: "sD", dec: 2, min: 0.3, max: 2.5 }, { k: "nD", log: true },
+    { k: "t", dec: 2, dyn: true }
+  ];
+  const bounds = c => (c.log ? [NMIN, NMAX] : c.dyn ? domainOf() : [c.min, c.max]);
+
+  let C = null, raf = 0;
+  function render() { raf = 0; C = compute(); drawDist(C); drawROC(C); drawReadout(C); }
+  function schedule() { if (!raf) raf = requestAnimationFrame(render); }
+
+  function sync(src) {
+    const [lo, hi] = domainOf();
+    const tr = $("t"), tn = $("t-n");
+    tr.min = lo; tr.max = hi; tn.min = lo; tn.max = hi;
+    CTL.forEach(c => {
+      const v = S[c.k];
+      if (c.r !== src) c.r.value = c.log ? nToR(v) : v;
+      if (c.n !== src && document.activeElement !== c.n) c.n.value = c.log ? String(v) : v.toFixed(c.dec);
+    });
+    document.querySelectorAll(".chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.p === S.preset)));
+    $("ym-" + (S.yMode === "count" ? "c" : "d")).checked = true;
+    $(S.basis === "sample" ? "b-s" : "b-p").checked = true;
+    $("showHist").checked = S.showHist; $("showEmp").checked = S.showEmp;
+  }
+
+  function set(patch, src) {
+    Object.assign(S, patch);
+    if (!("preset" in patch) && MODEL_KEYS.some(k => k in patch)) S.preset = null;
+    const [lo, hi] = domainOf();
+    S.t = clamp(S.t, lo, hi);
+    sync(src);
+    schedule();
+  }
+
+  CTL.forEach(c => {
+    c.r = $(c.k); c.n = $(c.k + "-n");
+    c.r.addEventListener("input", () => set({ [c.k]: c.log ? rToN(+c.r.value) : +c.r.value }, c.r));
+    c.n.addEventListener("input", () => {
+      const v = parseFloat(c.n.value);
+      if (!isFinite(v)) return;
+      const [a, b] = bounds(c);
+      set({ [c.k]: c.log ? Math.round(clamp(v, a, b)) : clamp(v, a, b) }, c.n);
+    });
+    c.n.addEventListener("change", () => sync());
+  });
+  document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => set(Object.assign({ preset: b.dataset.p }, PRESETS[b.dataset.p]))));
+  document.querySelectorAll('input[name="ymode"]').forEach(r => r.addEventListener("change", () => set({ yMode: r.value })));
+  document.querySelectorAll('input[name="basis"]').forEach(r => r.addEventListener("change", () => set({ basis: r.value })));
+  $("showHist").addEventListener("change", e => set({ showHist: e.target.checked }));
+  $("showEmp").addEventListener("change", e => set({ showEmp: e.target.checked }));
+  $("resample").addEventListener("click", () => { S.seed += 1; pool = makePool(S.seed); set({}); });
+  $("best").addEventListener("click", () => { if (!C) C = compute(); set({ t: bestCut(C).t }); });
+
+  /* ---------- dragging on the charts ---------- */
+  const dsvg = $("dist-svg"), rsvg = $("roc-svg");
+  function svgPoint(svg, e) {
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    return p.matrixTransform(svg.getScreenCTM().inverse());
+  }
+  function distTo(e) {
+    if (!C) return;
+    const p = svgPoint(dsvg, e);
+    const v = C.lo + (p.x - DM.l) / (DW - DM.l - DM.r) * (C.hi - C.lo);
+    set({ t: Math.round(v * 100) / 100 });
+  }
+  function rocTo(e) {
+    if (!C) return;
+    const p = svgPoint(rsvg, e);
+    const f = (p.x - RM.l) / RPW, v = 1 - (p.y - RM.t) / RPH;
+    const cands = S.basis === "sample"
+      ? C.emp.cuts.map((x, k) => ({ f: C.emp.pts[k + 1][0], s: C.emp.pts[k + 1][1], t: x }))
+      : C.theo;
+    let best = null, bd = Infinity;
+    for (const q of cands) { const d = (q.f - f) ** 2 + (q.s - v) ** 2; if (d < bd) { bd = d; best = q; } }
+    if (best) set({ t: S.basis === "sample" ? best.t : Math.round(best.t * 100) / 100 });
+  }
+  let drag = null;
+  function bindDrag(svg, fn, name) {
+    svg.addEventListener("pointerdown", e => { drag = name; try { svg.setPointerCapture(e.pointerId); } catch (_) {} fn(e); });
+    svg.addEventListener("pointermove", e => { if (drag === name) fn(e); });
+    ["pointerup", "pointercancel", "lostpointercapture"].forEach(ev => svg.addEventListener(ev, () => { drag = null; }));
+  }
+  bindDrag(dsvg, distTo, "d");
+  bindDrag(rsvg, rocTo, "r");
+
+  sync();
+  render();
+})();
+</script>
+</body>
+</html>
