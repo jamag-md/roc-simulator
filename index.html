@@ -48,6 +48,7 @@ button, input { font: inherit; color: inherit; }
 
 /* Header */
 .top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 28px; }
+.title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 18px; }
 h1 { font: 700 clamp(25px, 3vw, 33px)/1.1 var(--display); letter-spacing: -0.015em; margin: 0; text-wrap: balance; }
 .lede { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
 .presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; max-width: 640px; }
@@ -164,11 +165,12 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
 @media (max-width: 860px) { .lower { grid-template-columns: minmax(0, 1fr); } }
 .lower > section { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 18px 16px; min-width: 0; }
 .lower h2 { font: 600 16px var(--display); margin: 0 0 8px; }
-.cm-wrap { overflow-x: auto; }
-.cm { width: 100%; border-collapse: separate; border-spacing: 5px; font-variant-numeric: tabular-nums; margin: -5px; width: calc(100% + 10px); }
+.cm-wrap { min-width: 0; }
+.cm { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 4px; font-variant-numeric: tabular-nums; }
+.cm col.c-row { width: 22%; } .cm col.c-tot { width: 16%; }
 .cm th { font-size: 12px; color: var(--muted); font-weight: 700; text-align: left; padding: 2px 6px; vertical-align: bottom; }
-.cm th.rowh { vertical-align: middle; white-space: nowrap; }
-.cm td { padding: 9px 11px; border-radius: 8px; vertical-align: top; }
+.cm th.rowh { vertical-align: middle; overflow-wrap: anywhere; }
+.cm td { padding: 8px 10px; min-width: 0; overflow-wrap: anywhere; border-radius: 8px; vertical-align: top; }
 .cm td b { font: 700 22px/1.15 var(--display); display: block; }
 .cm td span { font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 700; }
 .cm td.tp { background: color-mix(in srgb, var(--disease) 22%, var(--surface)); }
@@ -216,64 +218,69 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
 </style>
 </head>
 <body>
-
 <div class="app">
   <header class="top">
     <div>
-      <h1>ROC Threshold Simulator</h1>
-      <p class="lede">Reshape the healthy and diseased populations, change how many patients you sample, and move the cutoff. The score distributions, the ROC curve and every metric update together.</p>
+      <div class="title-row">
+        <h1 data-i="title">ROC Threshold Simulator</h1>
+        <div class="seg" role="radiogroup" aria-label="Language / Idioma">
+          <input type="radio" name="lang" id="lang-en" value="en" checked><label for="lang-en">English</label>
+          <input type="radio" name="lang" id="lang-es" value="es"><label for="lang-es">Español</label>
+        </div>
+      </div>
+      <p class="lede" data-i="lede">Reshape the healthy and diseased populations, change how many patients you sample, and move the cutoff. The score distributions, the ROC curve and every metric update together.</p>
     </div>
-    <div class="presets" role="group" aria-label="Scenarios">
-      <span class="eyebrow">Scenarios</span>
-      <button class="chip" type="button" data-p="example">Classic overlap</button>
-      <button class="chip" type="button" data-p="excellent">Excellent test</button>
-      <button class="chip" type="button" data-p="weak">Weak test</button>
-      <button class="chip" type="button" data-p="none">No discrimination</button>
-      <button class="chip" type="button" data-p="unequal">Unequal spread</button>
-      <button class="chip" type="button" data-p="rare">Rare disease</button>
-      <button class="chip" type="button" data-p="small">Small study</button>
+    <div class="presets" role="group" data-ia="scenarios" aria-label="Scenarios">
+      <span class="eyebrow" data-i="scenarios">Scenarios</span>
+      <button class="chip" type="button" data-p="example" data-i="p_example">Classic overlap</button>
+      <button class="chip" type="button" data-p="excellent" data-i="p_excellent">Excellent test</button>
+      <button class="chip" type="button" data-p="weak" data-i="p_weak">Weak test</button>
+      <button class="chip" type="button" data-p="none" data-i="p_none">No discrimination</button>
+      <button class="chip" type="button" data-p="unequal" data-i="p_unequal">Unequal spread</button>
+      <button class="chip" type="button" data-p="rare" data-i="p_rare">Rare disease</button>
+      <button class="chip" type="button" data-p="small" data-i="p_small">Small study</button>
     </div>
   </header>
 
   <div class="layout">
-    <aside class="rail" aria-label="Population settings">
+    <aside class="rail" data-ia="rail" aria-label="Population settings">
       <section class="grp" style="--gc: var(--healthy)">
-        <h3><span class="sw" style="background: var(--healthy); width: 10px; height: 10px; border-radius: 50%"></span>Healthy group</h3>
+        <h3><span class="sw" style="background: var(--healthy); width: 10px; height: 10px; border-radius: 50%"></span><span data-i="g_healthy">Healthy group</span></h3>
         <div class="ctl">
-          <div class="ctl-head"><label for="mH">Mean score <span class="sym">μ</span></label><input class="num" id="mH-n" type="number" step="0.05" min="-3" max="5" aria-label="Healthy mean score"></div>
+          <div class="ctl-head"><label for="mH"><span data-i="mean">Mean score</span> <span class="sym">μ</span></label><input class="num" id="mH-n" type="number" step="0.05" min="-3" max="5" data-ia="a_mH" aria-label="Healthy mean score"></div>
           <input type="range" id="mH" min="-3" max="5" step="0.05">
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="sH">Spread (SD) <span class="sym">σ</span></label><input class="num" id="sH-n" type="number" step="0.05" min="0.3" max="2.5" aria-label="Healthy standard deviation"></div>
+          <div class="ctl-head"><label for="sH"><span data-i="sd">Spread (SD)</span> <span class="sym">σ</span></label><input class="num" id="sH-n" type="number" step="0.05" min="0.3" max="2.5" data-ia="a_sH" aria-label="Healthy standard deviation"></div>
           <input type="range" id="sH" min="0.3" max="2.5" step="0.05">
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="nH">Sample size <span class="sym">n</span></label><input class="num" id="nH-n" type="number" step="1" min="5" max="5000" aria-label="Healthy sample size"></div>
+          <div class="ctl-head"><label for="nH"><span data-i="n">Sample size</span> <span class="sym">n</span></label><input class="num" id="nH-n" type="number" step="1" min="5" max="5000" data-ia="a_nH" aria-label="Healthy sample size"></div>
           <input type="range" id="nH" min="0" max="1000" step="1">
         </div>
       </section>
 
       <section class="grp" style="--gc: var(--disease)">
-        <h3><span class="sw" style="background: var(--disease); width: 10px; height: 10px; border-radius: 50%"></span>Diseased group</h3>
+        <h3><span class="sw" style="background: var(--disease); width: 10px; height: 10px; border-radius: 50%"></span><span data-i="g_disease">Diseased group</span></h3>
         <div class="ctl">
-          <div class="ctl-head"><label for="mD">Mean score <span class="sym">μ</span></label><input class="num" id="mD-n" type="number" step="0.05" min="-3" max="5" aria-label="Diseased mean score"></div>
+          <div class="ctl-head"><label for="mD"><span data-i="mean">Mean score</span> <span class="sym">μ</span></label><input class="num" id="mD-n" type="number" step="0.05" min="-3" max="5" data-ia="a_mD" aria-label="Diseased mean score"></div>
           <input type="range" id="mD" min="-3" max="5" step="0.05">
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="sD">Spread (SD) <span class="sym">σ</span></label><input class="num" id="sD-n" type="number" step="0.05" min="0.3" max="2.5" aria-label="Diseased standard deviation"></div>
+          <div class="ctl-head"><label for="sD"><span data-i="sd">Spread (SD)</span> <span class="sym">σ</span></label><input class="num" id="sD-n" type="number" step="0.05" min="0.3" max="2.5" data-ia="a_sD" aria-label="Diseased standard deviation"></div>
           <input type="range" id="sD" min="0.3" max="2.5" step="0.05">
         </div>
         <div class="ctl">
-          <div class="ctl-head"><label for="nD">Sample size <span class="sym">n</span></label><input class="num" id="nD-n" type="number" step="1" min="5" max="5000" aria-label="Diseased sample size"></div>
+          <div class="ctl-head"><label for="nD"><span data-i="n">Sample size</span> <span class="sym">n</span></label><input class="num" id="nD-n" type="number" step="1" min="5" max="5000" data-ia="a_nD" aria-label="Diseased sample size"></div>
           <input type="range" id="nD" min="0" max="1000" step="1">
         </div>
       </section>
 
-      <section class="sample-box" aria-label="Random sample">
-        <div class="sample-row"><span>Patients sampled</span><b id="tot-n">400</b></div>
-        <div class="sample-row"><span>Prevalence in sample</span><b id="prev">50.0%</b></div>
-        <div class="sample-row"><span>Random draw</span><b id="draw">#1</b></div>
-        <button class="btn" type="button" id="resample">Resample patients</button>
+      <section class="sample-box" data-ia="sample_box" aria-label="Random sample">
+        <div class="sample-row"><span data-i="tot_n">Patients sampled</span><b id="tot-n">400</b></div>
+        <div class="sample-row"><span data-i="prev">Prevalence in sample</span><b id="prev">50.0%</b></div>
+        <div class="sample-row"><span data-i="draw">Random draw</span><b id="draw">#1</b></div>
+        <button class="btn" type="button" id="resample" data-i="resample">Resample patients</button>
       </section>
     </aside>
 
@@ -281,110 +288,111 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       <div class="charts">
         <figure class="panel dist" style="margin: 0">
           <div class="panel-head">
-            <h2>Score distributions</h2>
+            <h2 data-i="dist_h">Score distributions</h2>
             <div class="panel-tools">
-              <div class="seg" role="radiogroup" aria-label="Vertical axis">
-                <input type="radio" name="ymode" id="ym-d" value="density" checked><label for="ym-d">Density</label>
-                <input type="radio" name="ymode" id="ym-c" value="count"><label for="ym-c">Patient counts</label>
+              <div class="seg" role="radiogroup" data-ia="yaxis" aria-label="Vertical axis">
+                <input type="radio" name="ymode" id="ym-d" value="density" checked><label for="ym-d" data-i="density">Density</label>
+                <input type="radio" name="ymode" id="ym-c" value="count"><label for="ym-c" data-i="counts">Patient counts</label>
               </div>
-              <label class="check"><input type="checkbox" id="showHist" checked>Sample histograms</label>
+              <label class="check"><input type="checkbox" id="showHist" checked><span data-i="show_hist">Sample histograms</span></label>
             </div>
           </div>
-          <svg id="dist-svg" class="chart" viewBox="0 0 640 340" role="img" aria-label="Healthy and diseased score distributions with the decision cutoff"></svg>
+          <svg id="dist-svg" class="chart" viewBox="0 0 640 340" role="img" data-ia="dist_aria" aria-label="Healthy and diseased score distributions with the decision cutoff"></svg>
           <figcaption class="legend">
-            <span><i class="sw solid-h"></i>True negative</span>
-            <span><i class="sw hatch-h"></i>False positive</span>
-            <span><i class="sw solid-d"></i>True positive</span>
-            <span><i class="sw hatch-d"></i>False negative</span>
-            <span><i class="sw step"></i>Sample histogram</span>
+            <span><i class="sw solid-h"></i><span data-i="l_tn">True negative</span></span>
+            <span><i class="sw hatch-h"></i><span data-i="l_fp">False positive</span></span>
+            <span><i class="sw solid-d"></i><span data-i="l_tp">True positive</span></span>
+            <span><i class="sw hatch-d"></i><span data-i="l_fn">False negative</span></span>
+            <span><i class="sw step"></i><span data-i="l_hist">Sample histogram</span></span>
           </figcaption>
         </figure>
 
         <figure class="panel roc" style="margin: 0">
           <div class="panel-head">
-            <h2>ROC curve</h2>
+            <h2 data-i="roc_h">ROC curve</h2>
             <div class="panel-tools">
-              <label class="check"><input type="checkbox" id="showEmp" checked>Sample curve</label>
+              <label class="check"><input type="checkbox" id="showEmp" checked><span data-i="show_emp">Sample curve</span></label>
             </div>
           </div>
           <div class="roc-wrap">
-            <svg id="roc-svg" class="chart" viewBox="0 0 360 354" role="img" aria-label="ROC curve with the current operating point"></svg>
+            <svg id="roc-svg" class="chart" viewBox="0 0 360 354" role="img" data-ia="roc_aria" aria-label="ROC curve with the current operating point"></svg>
           </div>
           <figcaption class="legend">
-            <span><i class="sw ln"></i>Population</span>
-            <span><i class="sw ln-m"></i>Sample</span>
-            <span><i class="sw dot"></i>Current cutoff</span>
+            <span><i class="sw ln"></i><span data-i="l_pop">Population</span></span>
+            <span><i class="sw ln-m"></i><span data-i="l_sample">Sample</span></span>
+            <span><i class="sw dot"></i><span data-i="l_cut">Current cutoff</span></span>
           </figcaption>
         </figure>
       </div>
 
       <div class="cutoff">
-        <div class="lab"><label for="t">Decision cutoff</label><small>Positive when score ≥ cutoff. Drag on either chart too.</small></div>
+        <div class="lab"><label for="t" data-i="cut_h">Decision cutoff</label><small data-i="cut_hint">Positive when score ≥ cutoff. Drag on either chart too.</small></div>
         <input type="range" id="t" min="-3" max="5" step="0.01">
-        <input class="num" id="t-n" type="number" step="0.01" aria-label="Decision cutoff value">
-        <button class="btn primary" type="button" id="best">Best cutoff (max J)</button>
+        <input class="num" id="t-n" type="number" step="0.01" data-ia="a_t" aria-label="Decision cutoff value">
+        <button class="btn primary" type="button" id="best" data-i="best">Best cutoff (max J)</button>
       </div>
 
-      <section class="readout" aria-live="off">
+      <section class="readout">
         <div class="readout-head">
           <div>
-            <h2>Performance at this cutoff</h2>
+            <h2 data-i="perf_h">Performance at this cutoff</h2>
             <p id="basis-cap">Counted from the 400 sampled patients</p>
           </div>
-          <div class="seg" role="radiogroup" aria-label="Compute metrics from">
-            <input type="radio" name="basis" id="b-s" value="sample" checked><label for="b-s">Sample</label>
-            <input type="radio" name="basis" id="b-p" value="population"><label for="b-p">Population</label>
+          <div class="seg" role="radiogroup" data-ia="basis" aria-label="Compute metrics from">
+            <input type="radio" name="basis" id="b-s" value="sample" checked><label for="b-s" data-i="l_sample">Sample</label>
+            <input type="radio" name="basis" id="b-p" value="population"><label for="b-p" data-i="l_pop">Population</label>
           </div>
         </div>
         <div class="primary">
           <div class="big" style="--gc: var(--disease)">
-            <span class="k">Sensitivity · TPR</span>
+            <span class="k" data-i="sens_k">Sensitivity · TPR</span>
             <div class="row"><span class="v" id="v-sens">–</span><span class="o" id="o-sens"></span></div>
             <div class="bar"><i id="b-sens"></i></div>
-            <span class="cap">TP ÷ (TP + FN): diseased patients correctly flagged</span>
+            <span class="cap" data-i="sens_cap">TP ÷ (TP + FN): diseased patients correctly flagged</span>
           </div>
           <div class="big" style="--gc: var(--healthy)">
-            <span class="k">Specificity · TNR</span>
+            <span class="k" data-i="spec_k">Specificity · TNR</span>
             <div class="row"><span class="v" id="v-spec">–</span><span class="o" id="o-spec"></span></div>
             <div class="bar"><i id="b-spec"></i></div>
-            <span class="cap">TN ÷ (TN + FP): healthy patients correctly cleared</span>
+            <span class="cap" data-i="spec_cap">TN ÷ (TN + FP): healthy patients correctly cleared</span>
           </div>
         </div>
         <dl class="secondary">
-          <div><dt>PPV</dt><dd id="v-ppv">–</dd><span class="f">TP ÷ all positives</span></div>
-          <div><dt>NPV</dt><dd id="v-npv">–</dd><span class="f">TN ÷ all negatives</span></div>
-          <div><dt>Accuracy</dt><dd id="v-acc">–</dd><span class="f">(TP + TN) ÷ N</span></div>
-          <div><dt>Youden's J</dt><dd id="v-j">–</dd><span class="f">Sens + Spec − 1</span></div>
-          <div><dt>LR+</dt><dd id="v-lr">–</dd><span class="f">Sens ÷ (1 − Spec)</span></div>
-          <div><dt>AUC</dt><dd id="v-auc">–</dd><span class="f" id="o-auc">Same at every cutoff</span></div>
+          <div><dt data-i="ppv">PPV</dt><dd id="v-ppv">–</dd><span class="f" data-i="ppv_f">TP ÷ all positives</span></div>
+          <div><dt data-i="npv">NPV</dt><dd id="v-npv">–</dd><span class="f" data-i="npv_f">TN ÷ all negatives</span></div>
+          <div><dt data-i="acc">Accuracy</dt><dd id="v-acc">–</dd><span class="f" data-i="acc_f">(TP + TN) ÷ N</span></div>
+          <div><dt data-i="j">Youden's J</dt><dd id="v-j">–</dd><span class="f" data-i="j_f">Sens + Spec − 1</span></div>
+          <div><dt data-i="lr">LR+</dt><dd id="v-lr">–</dd><span class="f" data-i="lr_f">Sens ÷ (1 − Spec)</span></div>
+          <div><dt>AUC</dt><dd id="v-auc">–</dd><span class="f" id="o-auc"></span></div>
         </dl>
       </section>
 
       <div class="lower">
         <section>
-          <h2>Confusion matrix</h2>
+          <h2 data-i="cm_h">Confusion matrix</h2>
           <div class="cm-wrap">
             <table class="cm">
+              <colgroup><col class="c-row"><col><col><col class="c-tot"></colgroup>
               <thead>
-                <tr><th></th><th id="cm-pos">Test positive</th><th id="cm-neg">Test negative</th><th>Total</th></tr>
+                <tr><th></th><th id="cm-pos">Test positive</th><th id="cm-neg">Test negative</th><th data-i="total">Total</th></tr>
               </thead>
               <tbody>
-                <tr><th class="rowh" scope="row" style="color: var(--disease)">Diseased</th>
-                  <td class="tp"><span>TP</span><b id="cm-tp">–</b></td>
-                  <td class="fn"><span>FN</span><b id="cm-fn">–</b></td>
+                <tr><th class="rowh" scope="row" style="color: var(--disease)" data-i="r_disease">Diseased</th>
+                  <td class="tp"><span data-i="TP">TP</span><b id="cm-tp">–</b></td>
+                  <td class="fn"><span data-i="FN">FN</span><b id="cm-fn">–</b></td>
                   <td class="tot" id="cm-rd">–</td></tr>
-                <tr><th class="rowh" scope="row" style="color: var(--healthy)">Healthy</th>
-                  <td class="fp"><span>FP</span><b id="cm-fp">–</b></td>
-                  <td class="tn"><span>TN</span><b id="cm-tn">–</b></td>
+                <tr><th class="rowh" scope="row" style="color: var(--healthy)" data-i="r_healthy">Healthy</th>
+                  <td class="fp"><span data-i="FP">FP</span><b id="cm-fp">–</b></td>
+                  <td class="tn"><span data-i="TN">TN</span><b id="cm-tn">–</b></td>
                   <td class="tot" id="cm-rh">–</td></tr>
-                <tr><th class="rowh" scope="row">Total</th>
+                <tr><th class="rowh" scope="row" data-i="total">Total</th>
                   <td class="tot" id="cm-cp">–</td><td class="tot" id="cm-cn">–</td><td class="tot" id="cm-all">–</td></tr>
               </tbody>
             </table>
           </div>
         </section>
         <section class="story">
-          <h2>What the numbers say</h2>
+          <h2 data-i="story_h">What the numbers say</h2>
           <p id="story"></p>
           <ul id="insights"></ul>
         </section>
@@ -393,14 +401,14 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
   </div>
 
   <section class="concepts">
-    <h2>Key ideas</h2>
+    <h2 data-i="concepts_h">Key ideas</h2>
     <dl>
-      <div><dt>Sensitivity (true positive rate)</dt><dd>The share of diseased patients whose score is at or above the cutoff. Raising the cutoff lowers it.</dd></div>
-      <div><dt>Specificity (true negative rate)</dt><dd>The share of healthy patients whose score is below the cutoff. Raising the cutoff raises it, so the two always trade off.</dd></div>
-      <div><dt>ROC curve</dt><dd>Every possible cutoff drawn as one point: false positive rate across, true positive rate up. Moving the cutoff slides the point along the curve. Only changing the populations changes the curve itself.</dd></div>
-      <div><dt>AUC</dt><dd>The area under the ROC curve. It equals the chance that a randomly chosen diseased patient scores higher than a randomly chosen healthy one. For two normal curves it is Φ((μ<sub>D</sub> − μ<sub>H</sub>) ÷ √(σ<sub>H</sub>² + σ<sub>D</sub>²)).</dd></div>
-      <div><dt>Predictive values</dt><dd>PPV and NPV also depend on how common the disease is. Shrink the diseased group and PPV falls even though sensitivity and specificity stay the same.</dd></div>
-      <div><dt>Sample versus population</dt><dd>Smooth curves are the true populations. Histograms and the stepped ROC curve come from a finite random sample, so small groups give jagged, unstable estimates.</dd></div>
+      <div><dt data-i="c1t">Sensitivity (true positive rate)</dt><dd data-i="c1d">The share of diseased patients whose score is at or above the cutoff. Raising the cutoff lowers it.</dd></div>
+      <div><dt data-i="c2t">Specificity (true negative rate)</dt><dd data-i="c2d">The share of healthy patients whose score is below the cutoff. Raising the cutoff raises it, so the two always trade off.</dd></div>
+      <div><dt data-i="c3t">ROC curve</dt><dd data-i="c3d">Every possible cutoff drawn as one point: false positive rate across, true positive rate up. Moving the cutoff slides the point along the curve. Only changing the populations changes the curve itself.</dd></div>
+      <div><dt data-i="c4t">AUC</dt><dd data-ih="c4d">The area under the ROC curve. It equals the chance that a randomly chosen diseased patient scores higher than a randomly chosen healthy one. For two normal curves it is Φ((μ<sub>D</sub> − μ<sub>H</sub>) ÷ √(σ<sub>H</sub>² + σ<sub>D</sub>²)).</dd></div>
+      <div><dt data-i="c5t">Predictive values</dt><dd data-i="c5d">PPV and NPV also depend on how common the disease is. Shrink the diseased group and PPV falls even though sensitivity and specificity stay the same.</dd></div>
+      <div><dt data-i="c6t">Sample versus population</dt><dd data-i="c6d">Smooth curves are the true populations. Histograms and the stepped ROC curve come from a finite random sample, so small groups give jagged, unstable estimates.</dd></div>
     </dl>
   </section>
 </div>
@@ -421,6 +429,123 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     rare:      { mH: 0.2, sH: 0.75, mD: 1.8, sD: 0.75, nH: 2000, nD: 40,  t: 1 },
     small:     { mH: 0.2, sH: 0.75, mD: 1.8, sD: 0.75, nH: 15,   nD: 15,  t: 1 }
   };
+
+  /* ---------- language ---------- */
+  const I18N = {
+    en: {
+      title: "ROC Threshold Simulator",
+      lede: "Reshape the healthy and diseased populations, change how many patients you sample, and move the cutoff. The score distributions, the ROC curve and every metric update together.",
+      scenarios: "Scenarios",
+      p_example: "Classic overlap", p_excellent: "Excellent test", p_weak: "Weak test", p_none: "No discrimination",
+      p_unequal: "Unequal spread", p_rare: "Rare disease", p_small: "Small study",
+      rail: "Population settings", g_healthy: "Healthy group", g_disease: "Diseased group",
+      mean: "Mean score", sd: "Spread (SD)", n: "Sample size",
+      a_mH: "Healthy mean score", a_sH: "Healthy standard deviation", a_nH: "Healthy sample size",
+      a_mD: "Diseased mean score", a_sD: "Diseased standard deviation", a_nD: "Diseased sample size", a_t: "Decision cutoff value",
+      sample_box: "Random sample", tot_n: "Patients sampled", prev: "Prevalence in sample", draw: "Random draw", resample: "Resample patients",
+      dist_h: "Score distributions", yaxis: "Vertical axis", density: "Density", counts: "Patient counts", show_hist: "Sample histograms",
+      dist_aria: "Healthy and diseased score distributions with the decision cutoff",
+      l_tn: "True negative", l_fp: "False positive", l_tp: "True positive", l_fn: "False negative", l_hist: "Sample histogram",
+      roc_h: "ROC curve", show_emp: "Sample curve", roc_aria: "ROC curve with the current operating point",
+      l_pop: "Population", l_sample: "Sample", l_cut: "Current cutoff",
+      cut_h: "Decision cutoff", cut_hint: "Positive when score ≥ cutoff. Drag on either chart too.", best: "Best cutoff (max J)",
+      perf_h: "Performance at this cutoff", basis: "Compute metrics from",
+      sens_k: "Sensitivity · TPR", sens_cap: "TP ÷ (TP + FN): diseased patients correctly flagged",
+      spec_k: "Specificity · TNR", spec_cap: "TN ÷ (TN + FP): healthy patients correctly cleared",
+      ppv: "PPV", ppv_f: "TP ÷ all positives", npv: "NPV", npv_f: "TN ÷ all negatives",
+      acc: "Accuracy", acc_f: "(TP + TN) ÷ N", j: "Youden's J", j_f: "Sens + Spec − 1", lr: "LR+", lr_f: "Sens ÷ (1 − Spec)",
+      cm_h: "Confusion matrix", total: "Total", r_disease: "Diseased", r_healthy: "Healthy", TP: "TP", FN: "FN", FP: "FP", TN: "TN",
+      story_h: "What the numbers say", concepts_h: "Key ideas",
+      c1t: "Sensitivity (true positive rate)", c1d: "The share of diseased patients whose score is at or above the cutoff. Raising the cutoff lowers it.",
+      c2t: "Specificity (true negative rate)", c2d: "The share of healthy patients whose score is below the cutoff. Raising the cutoff raises it, so the two always trade off.",
+      c3t: "ROC curve", c3d: "Every possible cutoff drawn as one point: false positive rate across, true positive rate up. Moving the cutoff slides the point along the curve. Only changing the populations changes the curve itself.",
+      c4t: "AUC", c4d: "The area under the ROC curve. It equals the chance that a randomly chosen diseased patient scores higher than a randomly chosen healthy one. For two normal curves it is Φ((μ<sub>D</sub> − μ<sub>H</sub>) ÷ √(σ<sub>H</sub>² + σ<sub>D</sub>²)).",
+      c5t: "Predictive values", c5d: "PPV and NPV also depend on how common the disease is. Shrink the diseased group and PPV falls even though sensitivity and specificity stay the same.",
+      c6t: "Sample versus population", c6d: "Smooth curves are the true populations. Histograms and the stepped ROC curve come from a finite random sample, so small groups give jagged, unstable estimates.",
+      // chart and dynamic text
+      healthy: "Healthy", diseased: "Diseased", cutoff: "cutoff", neg: "← test negative", pos: "test positive →",
+      x_dist: "Diagnostic score / biomarker level →", y_density: "Probability density", y_count: "Patients per bin",
+      chance: "chance", x_roc: "False positive rate (1 − specificity)", y_roc: "True positive rate (sensitivity)",
+      o_pop: "population", o_sample: "sample", auc_same: "same at every cutoff",
+      cap_sample: n => `Counted from the ${n} sampled patients`, cap_pop: "Expected values from the smooth population curves",
+      cm_pos: t => `Test positive (≥ ${t})`, cm_neg: t => `Test negative (< ${t})`,
+      story: (t, m, c) => `At a cutoff of ${t}, the test flags ${m.sens} of diseased patients (${m.TP} of ${c.nD}) and wrongly flags ${m.fpr} of healthy ones (${m.FP} of ${c.nH}). `,
+      story_pos: (m, c) => `With ${c.prev} of patients diseased, a positive result is right ${m.ppv} of the time and a negative result ${m.npv} of the time.`,
+      story_none: "Nobody tests positive at this cutoff, so the test misses every diseased patient.",
+      i_reversed: `Diseased patients score lower than healthy ones here, so "positive when score ≥ cutoff" does worse than chance (AUC below 0.5). Swap the means, or read the test the other way round.`,
+      i_overlap: a => `The two populations overlap almost completely (AUC ${a}). Every cutoff trades true positives for false positives at about the same rate, so the ROC curve hugs the diagonal.`,
+      i_separate: a => `The populations barely overlap (AUC ${a}), so a wide band of cutoffs gives high sensitivity and specificity together. The ROC curve bends right into the top-left corner.`,
+      i_rare_bad: (p, sp, fp, tp, ppv) => `Only ${p} of the sample is diseased. Even at ${sp} specificity, false positives (${fp}) outnumber true positives (${tp}), so PPV drops to ${ppv}.`,
+      i_rare_ok: (p, ppv) => `Only ${p} of the sample is diseased, yet PPV holds at ${ppv} because specificity is very high. Lower the cutoff and watch false positives take over.`,
+      i_small: (n, step) => `The smaller group has only ${n} patients, so each patient moves the sample estimate by ${step}. Press Resample to see how much the stepped ROC curve and the sample AUC change between draws.`,
+      i_unequal: r => `The groups have unequal spreads (σ ratio ${r}). The density curves cross twice, and the ROC curve turns lopsided, dipping toward the diagonal at one end.`,
+      i_best: j => `This cutoff maximises Youden's J (${j}), the point on the ROC curve farthest above the chance line.`,
+      i_default: "Drag the cutoff right: specificity rises, sensitivity falls, and the point on the ROC curve slides down toward the origin. The curve itself stays put."
+    },
+    es: {
+      title: "Simulador de umbral ROC",
+      lede: "Modifica las poblaciones de sanos y enfermos, cambia cuántos pacientes muestreas y mueve el punto de corte. Las distribuciones, la curva ROC y todas las métricas se actualizan a la vez.",
+      scenarios: "Escenarios",
+      p_example: "Solapamiento clásico", p_excellent: "Prueba excelente", p_weak: "Prueba débil", p_none: "Sin discriminación",
+      p_unequal: "Dispersión desigual", p_rare: "Enfermedad rara", p_small: "Estudio pequeño",
+      rail: "Ajustes de las poblaciones", g_healthy: "Grupo sano", g_disease: "Grupo enfermo",
+      mean: "Puntuación media", sd: "Dispersión (DE)", n: "Tamaño de muestra",
+      a_mH: "Puntuación media de los sanos", a_sH: "Desviación estándar de los sanos", a_nH: "Tamaño de muestra de los sanos",
+      a_mD: "Puntuación media de los enfermos", a_sD: "Desviación estándar de los enfermos", a_nD: "Tamaño de muestra de los enfermos", a_t: "Valor del punto de corte",
+      sample_box: "Muestra aleatoria", tot_n: "Pacientes muestreados", prev: "Prevalencia en la muestra", draw: "Extracción aleatoria", resample: "Nueva muestra",
+      dist_h: "Distribución de puntuaciones", yaxis: "Eje vertical", density: "Densidad", counts: "Número de pacientes", show_hist: "Histogramas de la muestra",
+      dist_aria: "Distribuciones de puntuaciones de sanos y enfermos con el punto de corte",
+      l_tn: "Verdadero negativo", l_fp: "Falso positivo", l_tp: "Verdadero positivo", l_fn: "Falso negativo", l_hist: "Histograma de la muestra",
+      roc_h: "Curva ROC", show_emp: "Curva de la muestra", roc_aria: "Curva ROC con el punto de operación actual",
+      l_pop: "Población", l_sample: "Muestra", l_cut: "Punto de corte actual",
+      cut_h: "Punto de corte", cut_hint: "Positivo si la puntuación ≥ punto de corte. También puedes arrastrar sobre los gráficos.", best: "Mejor punto de corte (J máx.)",
+      perf_h: "Rendimiento con este punto de corte", basis: "Calcular las métricas con",
+      sens_k: "Sensibilidad · TVP", sens_cap: "VP ÷ (VP + FN): enfermos detectados correctamente",
+      spec_k: "Especificidad · TVN", spec_cap: "VN ÷ (VN + FP): sanos descartados correctamente",
+      ppv: "VPP", ppv_f: "VP ÷ todos los positivos", npv: "VPN", npv_f: "VN ÷ todos los negativos",
+      acc: "Exactitud", acc_f: "(VP + VN) ÷ N", j: "J de Youden", j_f: "Sens + Espec − 1", lr: "RV+", lr_f: "Sens ÷ (1 − Espec)",
+      cm_h: "Matriz de confusión", total: "Total", r_disease: "Enfermos", r_healthy: "Sanos", TP: "VP", FN: "FN", FP: "FP", TN: "VN",
+      story_h: "Qué dicen los números", concepts_h: "Ideas clave",
+      c1t: "Sensibilidad (tasa de verdaderos positivos)", c1d: "La proporción de enfermos cuya puntuación está en el punto de corte o por encima. Si subes el punto de corte, baja.",
+      c2t: "Especificidad (tasa de verdaderos negativos)", c2d: "La proporción de sanos cuya puntuación queda por debajo del punto de corte. Si subes el punto de corte, sube, así que ambas siempre se compensan.",
+      c3t: "Curva ROC", c3d: "Cada punto de corte posible dibujado como un punto: tasa de falsos positivos en horizontal y tasa de verdaderos positivos en vertical. Mover el punto de corte desliza el punto por la curva. Solo cambiar las poblaciones cambia la curva.",
+      c4t: "AUC (área bajo la curva)", c4d: "El área bajo la curva ROC. Es la probabilidad de que un enfermo elegido al azar puntúe más alto que un sano elegido al azar. Para dos curvas normales vale Φ((μ<sub>E</sub> − μ<sub>S</sub>) ÷ √(σ<sub>S</sub>² + σ<sub>E</sub>²)).",
+      c5t: "Valores predictivos", c5d: "El VPP y el VPN también dependen de lo frecuente que sea la enfermedad. Reduce el grupo enfermo y el VPP cae aunque la sensibilidad y la especificidad no cambien.",
+      c6t: "Muestra frente a población", c6d: "Las curvas suaves son las poblaciones reales. Los histogramas y la curva ROC escalonada salen de una muestra aleatoria finita, así que los grupos pequeños dan estimaciones irregulares e inestables.",
+      healthy: "Sanos", diseased: "Enfermos", cutoff: "corte", neg: "← prueba negativa", pos: "prueba positiva →",
+      x_dist: "Puntuación diagnóstica / nivel del biomarcador →", y_density: "Densidad de probabilidad", y_count: "Pacientes por intervalo",
+      chance: "azar", x_roc: "Tasa de falsos positivos (1 − especificidad)", y_roc: "Tasa de verdaderos positivos (sensibilidad)",
+      o_pop: "población", o_sample: "muestra", auc_same: "igual con cualquier punto de corte",
+      cap_sample: n => `Calculado con los ${n} pacientes muestreados`, cap_pop: "Valores esperados según las curvas de población",
+      cm_pos: t => `Prueba positiva (≥ ${t})`, cm_neg: t => `Prueba negativa (< ${t})`,
+      story: (t, m, c) => `Con un punto de corte de ${t}, la prueba detecta al ${m.sens} de los enfermos (${m.TP} de ${c.nD}) y marca por error al ${m.fpr} de los sanos (${m.FP} de ${c.nH}). `,
+      story_pos: (m, c) => `Con un ${c.prev} de enfermos, un resultado positivo acierta el ${m.ppv} de las veces y uno negativo el ${m.npv}.`,
+      story_none: "Nadie da positivo con este punto de corte, así que la prueba no detecta a ningún enfermo.",
+      i_reversed: `Aquí los enfermos puntúan más bajo que los sanos, así que «positivo si la puntuación ≥ corte» funciona peor que el azar (AUC por debajo de 0,5). Intercambia las medias o interpreta la prueba al revés.`,
+      i_overlap: a => `Las dos poblaciones se solapan casi por completo (AUC ${a}). Cada punto de corte cambia verdaderos positivos por falsos positivos casi al mismo ritmo, así que la curva ROC queda pegada a la diagonal.`,
+      i_separate: a => `Las poblaciones apenas se solapan (AUC ${a}), así que una amplia franja de puntos de corte da a la vez alta sensibilidad y alta especificidad. La curva ROC llega hasta la esquina superior izquierda.`,
+      i_rare_bad: (p, sp, fp, tp, ppv) => `Solo el ${p} de la muestra está enfermo. Incluso con un ${sp} de especificidad, los falsos positivos (${fp}) superan a los verdaderos positivos (${tp}), así que el VPP cae al ${ppv}.`,
+      i_rare_ok: (p, ppv) => `Solo el ${p} de la muestra está enfermo, pero el VPP se mantiene en ${ppv} porque la especificidad es muy alta. Baja el punto de corte y verás cómo dominan los falsos positivos.`,
+      i_small: (n, step) => `El grupo más pequeño tiene solo ${n} pacientes, así que cada paciente mueve la estimación de la muestra un ${step}. Pulsa «Nueva muestra» para ver cuánto cambian la curva ROC escalonada y el AUC de la muestra entre extracciones.`,
+      i_unequal: r => `Los grupos tienen dispersiones distintas (razón de σ ${r}). Las curvas de densidad se cruzan dos veces y la curva ROC se vuelve asimétrica, acercándose a la diagonal por un extremo.`,
+      i_best: j => `Este punto de corte maximiza la J de Youden (${j}), el punto de la curva ROC más alejado por encima de la línea del azar.`,
+      i_default: "Arrastra el punto de corte hacia la derecha: la especificidad sube, la sensibilidad baja y el punto de la curva ROC se desliza hacia el origen. La curva en sí no se mueve."
+    }
+  };
+  let L = "en";
+  try {
+    const saved = localStorage.getItem("roc-sim-lang");
+    L = saved === "es" || saved === "en" ? saved : (/^es\b/i.test(navigator.language || "") ? "es" : "en");
+  } catch (_) { L = /^es\b/i.test(navigator.language || "") ? "es" : "en"; }
+  const T = k => (I18N[L][k] !== undefined ? I18N[L][k] : I18N.en[k]);
+  function applyLang() {
+    document.documentElement.lang = L;
+    document.title = T("title");
+    document.querySelectorAll("[data-i]").forEach(el => { el.textContent = T(el.dataset.i); });
+    document.querySelectorAll("[data-ih]").forEach(el => { el.innerHTML = T(el.dataset.ih); });
+    document.querySelectorAll("[data-ia]").forEach(el => { el.setAttribute("aria-label", T(el.dataset.ia)); });
+    $("lang-" + L).checked = true;
+  }
 
   /* ---------- maths ---------- */
   function mulberry32(a) {
@@ -517,15 +642,18 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
   }
 
   /* ---------- formatting ---------- */
-  const minus = s => s.replace(/-/g, "−");
-  const pct = v => (isFinite(v) ? (v * 100).toFixed(1) + "%" : "–");
+  // Display numbers use the decimal comma in Spanish; number inputs keep the browser's own format
+  const dec = s => (L === "es" ? s.replace(".", ",") : s);
+  const fx = (v, d) => dec(v.toFixed(d)).replace(/-/g, "−");
+  const pct = v => (isFinite(v) ? dec((v * 100).toFixed(1)) + (L === "es" ? " %" : "%") : "–");
   const P = n => n.toFixed(1);
   const fmtTick = (v, step) => {
     if (Math.abs(v) < 1e-9) return "0";
     const d = step >= 1 ? 0 : step >= 0.1 ? 1 : step >= 0.01 ? 2 : 3;
-    return minus(v.toFixed(d));
+    return fx(v, d);
   };
   const cnt = v => (S.basis === "sample" ? String(Math.round(v)) : "≈" + Math.round(v));
+  const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
   const $ = id => document.getElementById(id);
   const txt = (id, s) => { $(id).textContent = s; };
 
@@ -594,19 +722,19 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       ah = hLeft ? "end" : "start"; ad = hLeft ? "start" : "end";
     }
     xh = clamp(xh, DM.l + 34, DW - DM.r - 34); xd = clamp(xd, DM.l + 38, DW - DM.r - 38);
-    s += `<text class="glabel" x="${P(xh)}" y="${P(Y(fH(S.mH)) - 10)}" text-anchor="${ah}" style="fill:var(--healthy)">Healthy</text>`;
-    s += `<text class="glabel" x="${P(xd)}" y="${P(Y(fD(S.mD)) - 10)}" text-anchor="${ad}" style="fill:var(--disease)">Diseased</text>`;
+    s += `<text class="glabel" x="${P(xh)}" y="${P(Y(fH(S.mH)) - 10)}" text-anchor="${ah}" style="fill:var(--healthy)">${T("healthy")}</text>`;
+    s += `<text class="glabel" x="${P(xd)}" y="${P(Y(fD(S.mD)) - 10)}" text-anchor="${ad}" style="fill:var(--disease)">${T("diseased")}</text>`;
 
     // Cutoff line, pill label and direction hints
     const px = clamp(xt, DM.l + 46, DW - DM.r - 46), py = DM.t - 32;
     s += `<line class="cut" x1="${P(xt)}" x2="${P(xt)}" y1="${py + 22}" y2="${y0}"/>`;
     s += `<rect x="${P(px - 46)}" y="${py}" width="92" height="22" rx="11" style="fill:var(--accent)"/>`;
-    s += `<text class="pill" x="${P(px)}" y="${py + 11}" dy="0.35em" text-anchor="middle">cutoff ${minus(t.toFixed(2))}</text>`;
-    if (px - 46 - DM.l > 96) s += `<text class="hint" x="${P(px - 56)}" y="${py + 11}" dy="0.35em" text-anchor="end">← test negative</text>`;
-    if (DW - DM.r - (px + 46) > 96) s += `<text class="hint" x="${P(px + 56)}" y="${py + 11}" dy="0.35em">test positive →</text>`;
+    s += `<text class="pill" x="${P(px)}" y="${py + 11}" dy="0.35em" text-anchor="middle">${T("cutoff")} ${fx(t, 2)}</text>`;
+    if (px - 46 - DM.l > 110) s += `<text class="hint" x="${P(px - 56)}" y="${py + 11}" dy="0.35em" text-anchor="end">${T("neg")}</text>`;
+    if (DW - DM.r - (px + 46) > 110) s += `<text class="hint" x="${P(px + 56)}" y="${py + 11}" dy="0.35em">${T("pos")}</text>`;
     s += `<circle cx="${P(xt)}" cy="${y0}" r="6" class="op"/>`;
-    s += `<text class="at" x="${DW - DM.r}" y="${DH - 6}" text-anchor="end">Diagnostic score / biomarker level →</text>`;
-    s += `<text class="at" transform="translate(14 ${DM.t + ph / 2}) rotate(-90)" text-anchor="middle">${isC ? "Patients per bin" : "Probability density"}</text>`;
+    s += `<text class="at" x="${DW - DM.r}" y="${DH - 6}" text-anchor="end">${T("x_dist")}</text>`;
+    s += `<text class="at" transform="translate(14 ${DM.t + ph / 2}) rotate(-90)" text-anchor="middle">${T(isC ? "y_count" : "y_density")}</text>`;
     $("dist-svg").innerHTML = s;
   }
 
@@ -617,7 +745,7 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     const X = f => RM.l + f * RPW, Y = v => RM.t + (1 - v) * RPH;
     let s = "";
     for (let i = 0; i <= 5; i++) {
-      const v = i / 5, lbl = i === 0 ? "0" : i === 5 ? "1" : v.toFixed(1);
+      const v = i / 5, lbl = i === 0 ? "0" : i === 5 ? "1" : fx(v, 1);
       s += `<line class="gl" x1="${P(X(v))}" x2="${P(X(v))}" y1="${RM.t}" y2="${RM.t + RPH}"/>`;
       s += `<line class="gl" x1="${RM.l}" x2="${RM.l + RPW}" y1="${P(Y(v))}" y2="${P(Y(v))}"/>`;
       s += `<text class="tk" x="${P(X(v))}" y="${RM.t + RPH + 16}" text-anchor="middle">${lbl}</text>`;
@@ -630,14 +758,14 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     d += `L${P(X(1))},${P(Y(1))}`;
     s += `<path d="${d}L${P(X(1))},${P(Y(0))}Z" style="fill:var(--accent);fill-opacity:.09"/>`;
     s += `<line class="diag" x1="${X(0)}" y1="${Y(0)}" x2="${X(1)}" y2="${Y(1)}"/>`;
-    s += `<text class="diag-l" transform="translate(${P(X(0.8))} ${P(Y(0.8) + 13)}) rotate(-45)" text-anchor="middle">chance</text>`;
+    s += `<text class="diag-l" transform="translate(${P(X(0.8))} ${P(Y(0.8) + 13)}) rotate(-45)" text-anchor="middle">${T("chance")}</text>`;
     if (S.showEmp) {
       let e = "";
       c.emp.pts.forEach((p, i) => { e += (i ? "L" : "M") + P(X(p[0])) + "," + P(Y(p[1])); });
       s += `<path class="emp" d="${e}"/>`;
     }
     s += `<path class="theo" d="${d}"/>`;
-    s += `<text class="aucl" x="${P(X(0.96))}" y="${P(Y(0.05))}" text-anchor="end">AUC ${c.cur.auc.toFixed(3)}</text>`;
+    s += `<text class="aucl" x="${P(X(0.96))}" y="${P(Y(0.05))}" text-anchor="end">AUC ${fx(c.cur.auc, 3)}</text>`;
 
     const o = c.other, of = 1 - o.spec, os = o.sens;
     if (S.basis === "population" ? S.showEmp : true) s += `<circle class="op2" cx="${P(X(of))}" cy="${P(Y(os))}" r="4.5"/>`;
@@ -649,26 +777,27 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       s += `<text class="jl" x="${P(X(f) + 6)}" y="${P(Y((f + v) / 2))}" dy="0.33em">J</text>`;
     }
     s += `<circle class="op" cx="${P(X(f))}" cy="${P(Y(v))}" r="7"/>`;
-    const right = f < 0.55, below = v > 0.86;
-    s += `<text class="opl" x="${P(X(f) + (right ? 12 : -12))}" y="${P(Y(v) + (below ? 20 : -12))}" text-anchor="${right ? "start" : "end"}">(${f.toFixed(2)}, ${v.toFixed(2)})</text>`;
-    s += `<text class="at" x="${RM.l + RPW / 2}" y="${RH - 8}" text-anchor="middle">False positive rate (1 − specificity)</text>`;
-    s += `<text class="at" transform="translate(14 ${RM.t + RPH / 2}) rotate(-90)" text-anchor="middle">True positive rate (sensitivity)</text>`;
+    const right = f < 0.55, below = v > 0.86, sep = L === "es" ? "; " : ", ";
+    s += `<text class="opl" x="${P(X(f) + (right ? 12 : -12))}" y="${P(Y(v) + (below ? 20 : -12))}" text-anchor="${right ? "start" : "end"}">(${fx(f, 2)}${sep}${fx(v, 2)})</text>`;
+    s += `<text class="at" x="${RM.l + RPW / 2}" y="${RH - 8}" text-anchor="middle">${T("x_roc")}</text>`;
+    s += `<text class="at" transform="translate(14 ${RM.t + RPH / 2}) rotate(-90)" text-anchor="middle">${T("y_roc")}</text>`;
     $("roc-svg").innerHTML = s;
   }
 
   /* ---------- readouts ---------- */
   function drawReadout(c) {
     const m = c.cur, o = c.other, isS = S.basis === "sample";
-    const oname = isS ? "population" : "sample";
-    txt("basis-cap", isS ? `Counted from the ${S.nH + S.nD} sampled patients` : "Expected values from the smooth population curves");
+    const oname = T(isS ? "o_pop" : "o_sample");
+    txt("basis-cap", isS ? T("cap_sample")(S.nH + S.nD) : T("cap_pop"));
     txt("v-sens", pct(m.sens)); txt("o-sens", `${oname} ${pct(o.sens)}`); $("b-sens").style.width = (m.sens * 100).toFixed(2) + "%";
     txt("v-spec", pct(m.spec)); txt("o-spec", `${oname} ${pct(o.spec)}`); $("b-spec").style.width = (m.spec * 100).toFixed(2) + "%";
     txt("v-ppv", pct(m.ppv)); txt("v-npv", pct(m.npv)); txt("v-acc", pct(m.acc));
-    txt("v-j", minus(m.J.toFixed(3)));
-    txt("v-lr", isFinite(m.lr) ? m.lr.toFixed(2) : "∞");
-    txt("v-auc", m.auc.toFixed(3)); txt("o-auc", `${oname} ${o.auc.toFixed(3)} · same at every cutoff`);
+    txt("v-j", fx(m.J, 3));
+    txt("v-lr", isFinite(m.lr) ? fx(m.lr, 2) : "∞");
+    txt("v-auc", fx(m.auc, 3)); txt("o-auc", `${oname} ${fx(o.auc, 3)} · ${T("auc_same")}`);
 
-    txt("cm-pos", `Test positive (≥ ${minus(S.t.toFixed(2))})`); txt("cm-neg", `Test negative (< ${minus(S.t.toFixed(2))})`);
+    const tS = fx(S.t, 2);
+    txt("cm-pos", T("cm_pos")(tS)); txt("cm-neg", T("cm_neg")(tS));
     txt("cm-tp", cnt(m.TP)); txt("cm-fn", cnt(m.FN)); txt("cm-fp", cnt(m.FP)); txt("cm-tn", cnt(m.TN));
     txt("cm-rd", String(S.nD)); txt("cm-rh", String(S.nH));
     txt("cm-cp", cnt(m.TP + m.FP)); txt("cm-cn", cnt(m.FN + m.TN)); txt("cm-all", String(S.nH + S.nD));
@@ -676,30 +805,25 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     txt("tot-n", String(S.nH + S.nD)); txt("prev", pct(c.prev)); txt("draw", "#" + S.seed);
 
     // Narrative
-    const tS = minus(S.t.toFixed(2));
-    let story = `At a cutoff of ${tS}, the test flags ${pct(m.sens)} of diseased patients (${cnt(m.TP)} of ${S.nD}) and wrongly flags ${pct(1 - m.spec)} of healthy ones (${cnt(m.FP)} of ${S.nH}). `;
-    story += m.TP + m.FP > 0
-      ? `With ${pct(c.prev)} of patients diseased, a positive result is right ${pct(m.ppv)} of the time and a negative result ${pct(m.npv)} of the time.`
-      : `Nobody tests positive at this cutoff, so the test misses every diseased patient.`;
-    txt("story", story);
+    const mf = { sens: pct(m.sens), fpr: pct(1 - m.spec), TP: cnt(m.TP), FP: cnt(m.FP), ppv: pct(m.ppv), npv: pct(m.npv) };
+    const cf = { nD: S.nD, nH: S.nH, prev: pct(c.prev) };
+    txt("story", T("story")(tS, mf, cf) + (m.TP + m.FP > 0 ? T("story_pos")(mf, cf) : T("story_none")));
 
     const ins = [], pop = c.pop, minN = Math.min(S.nH, S.nD), ratio = Math.max(S.sH, S.sD) / Math.min(S.sH, S.sD);
-    if (S.mD < S.mH) ins.push(`Diseased patients score lower than healthy ones here, so "positive when score ≥ cutoff" does worse than chance (AUC below 0.5). Swap the means, or read the test the other way round.`);
-    else if (pop.auc < 0.6) ins.push(`The two populations overlap almost completely (AUC ${pop.auc.toFixed(2)}). Every cutoff trades true positives for false positives at about the same rate, so the ROC curve hugs the diagonal.`);
-    else if (pop.auc > 0.97) ins.push(`The populations barely overlap (AUC ${pop.auc.toFixed(3)}), so a wide band of cutoffs gives high sensitivity and specificity together. The ROC curve bends right into the top-left corner.`);
+    if (S.mD < S.mH) ins.push(T("i_reversed"));
+    else if (pop.auc < 0.6) ins.push(T("i_overlap")(fx(pop.auc, 2)));
+    else if (pop.auc > 0.97) ins.push(T("i_separate")(fx(pop.auc, 3)));
     if (c.prev < 0.1 && m.TP + m.FP > 0) {
       ins.push(m.FP > m.TP
-        ? `Only ${pct(c.prev)} of the sample is diseased. Even at ${pct(m.spec)} specificity, false positives (${cnt(m.FP)}) outnumber true positives (${cnt(m.TP)}), so PPV drops to ${pct(m.ppv)}.`
-        : `Only ${pct(c.prev)} of the sample is diseased, yet PPV holds at ${pct(m.ppv)} because specificity is very high. Lower the cutoff and watch false positives take over.`);
+        ? T("i_rare_bad")(pct(c.prev), pct(m.spec), cnt(m.FP), cnt(m.TP), pct(m.ppv))
+        : T("i_rare_ok")(pct(c.prev), pct(m.ppv)));
     }
-    if (minN < 40) ins.push(`The smaller group has only ${minN} patients, so each patient moves the sample estimate by ${pct(1 / minN)}. Press Resample to see how much the stepped ROC curve and the sample AUC change between draws.`);
-    if (ratio >= 1.6 && S.mD >= S.mH) ins.push(`The groups have unequal spreads (σ ratio ${ratio.toFixed(1)}). The density curves cross twice, and the ROC curve turns lopsided, dipping toward the diagonal at one end.`);
+    if (minN < 40) ins.push(T("i_small")(minN, pct(1 / minN)));
+    if (ratio >= 1.6 && S.mD >= S.mH) ins.push(T("i_unequal")(fx(ratio, 1)));
     if (ins.length < 2) {
-      ins.push(m.J > 0 && Math.abs(m.J - bestJ(c)) < 0.005
-        ? `This cutoff maximises Youden's J (${m.J.toFixed(3)}), the point on the ROC curve farthest above the chance line.`
-        : `Drag the cutoff right: specificity rises, sensitivity falls, and the point on the ROC curve slides down toward the origin. The curve itself stays put.`);
+      ins.push(m.J > 0 && Math.abs(m.J - bestJ(c)) < 0.005 ? T("i_best")(fx(m.J, 3)) : T("i_default"));
     }
-    $("insights").innerHTML = ins.slice(0, 3).map(t => `<li>${t.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</li>`).join("");
+    $("insights").innerHTML = ins.slice(0, 3).map(t => `<li>${esc(t)}</li>`).join("");
   }
 
   /* ---------- best cutoff ---------- */
@@ -768,6 +892,12 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
   document.querySelectorAll(".chip").forEach(b => b.addEventListener("click", () => set(Object.assign({ preset: b.dataset.p }, PRESETS[b.dataset.p]))));
   document.querySelectorAll('input[name="ymode"]').forEach(r => r.addEventListener("change", () => set({ yMode: r.value })));
   document.querySelectorAll('input[name="basis"]').forEach(r => r.addEventListener("change", () => set({ basis: r.value })));
+  document.querySelectorAll('input[name="lang"]').forEach(r => r.addEventListener("change", () => {
+    L = r.value;
+    try { localStorage.setItem("roc-sim-lang", L); } catch (_) {}
+    applyLang();
+    render();
+  }));
   $("showHist").addEventListener("change", e => set({ showHist: e.target.checked }));
   $("showEmp").addEventListener("change", e => set({ showEmp: e.target.checked }));
   $("resample").addEventListener("click", () => { S.seed += 1; pool = makePool(S.seed); set({}); });
@@ -805,9 +935,11 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
   bindDrag(dsvg, distTo, "d");
   bindDrag(rsvg, rocTo, "r");
 
+  applyLang();
   sync();
   render();
 })();
 </script>
+
 </body>
 </html>
