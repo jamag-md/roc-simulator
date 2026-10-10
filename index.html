@@ -214,6 +214,19 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
 .aucl { fill: var(--ink); font: 700 13px var(--body); }
 .jl { fill: var(--accent); font: 700 11.5px var(--mono); paint-order: stroke; stroke: var(--surface); stroke-width: 3px; }
 
+/* Evidence */
+.refs { border-top: 1px solid var(--line); padding-top: 18px; display: grid; gap: 12px; }
+.refs h2 { font: 600 18px var(--display); margin: 0; }
+.refs-lede { margin: 0; color: var(--muted); font-size: 14px; max-width: 72ch; }
+.refs ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.ref { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.ref-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ref-head h3 { margin: 0; font: 600 15px var(--display); }
+.ref-try { font-size: 12px; padding: 3px 10px; }
+.ref p { margin: 0; font-size: 14px; }
+.ref cite { font-style: normal; font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
+.ref a { color: var(--healthy); }
+
 @media (prefers-reduced-motion: reduce) { .bar i { transition: none; } }
 </style>
 </head>
@@ -411,6 +424,12 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       <div><dt data-i="c6t">Sample versus population</dt><dd data-i="c6d">Smooth curves are the true populations. Histograms and the stepped ROC curve come from a finite random sample, so small groups give jagged, unstable estimates.</dd></div>
     </dl>
   </section>
+
+  <section class="refs">
+    <h2 data-i="refs_h">Evidence from the literature</h2>
+    <p class="refs-lede" data-i="refs_lede">Each scenario echoes a real study from emergency or internal medicine. Press "Try it" to load the scenario, then compare what you see with the paper.</p>
+    <ol id="refs"></ol>
+  </section>
 </div>
 
 <script>
@@ -480,6 +499,7 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       i_small: (n, step) => `The smaller group has only ${n} patients, so each patient moves the sample estimate by ${step}. Press Resample to see how much the stepped ROC curve and the sample AUC change between draws.`,
       i_unequal: r => `The groups have unequal spreads (σ ratio ${r}). The density curves cross twice, and the ROC curve turns lopsided, dipping toward the diagonal at one end.`,
       i_best: j => `This cutoff maximises Youden's J (${j}), the point on the ROC curve farthest above the chance line.`,
+      refs_h: "Evidence from the literature", refs_lede: "Each scenario echoes a real study from emergency or internal medicine. Press \"Try it\" to load the scenario, then compare what you see with the paper.", try_it: "Try it",
       i_default: "Drag the cutoff right: specificity rises, sensitivity falls, and the point on the ROC curve slides down toward the origin. The curve itself stays put."
     },
     es: {
@@ -529,6 +549,7 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
       i_small: (n, step) => `El grupo más pequeño tiene solo ${n} pacientes, así que cada paciente mueve la estimación de la muestra un ${step}. Pulsa «Nueva muestra» para ver cuánto cambian la curva ROC escalonada y el AUC de la muestra entre extracciones.`,
       i_unequal: r => `Los grupos tienen dispersiones distintas (razón de σ ${r}). Las curvas de densidad se cruzan dos veces y la curva ROC se vuelve asimétrica, acercándose a la diagonal por un extremo.`,
       i_best: j => `Este punto de corte maximiza la J de Youden (${j}), el punto de la curva ROC más alejado por encima de la línea del azar.`,
+      refs_h: "Evidencia en la literatura", refs_lede: "Cada escenario refleja un estudio real de urgencias o medicina interna. Pulsa «Probar» para cargar el escenario y compara lo que ves con el artículo.", try_it: "Probar",
       i_default: "Arrastra el punto de corte hacia la derecha: la especificidad sube, la sensibilidad baja y el punto de la curva ROC se desliza hacia el origen. La curva en sí no se mueve."
     }
   };
@@ -826,6 +847,60 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     $("insights").innerHTML = ins.slice(0, 3).map(t => `<li>${esc(t)}</li>`).join("");
   }
 
+
+  /* ---------- literature (verified on PubMed) ---------- */
+  const REFS = [
+    { p: "example", t: { en: "Classic overlap · BNP for heart failure", es: "Solapamiento clásico · BNP en insuficiencia cardíaca" },
+      x: { en: "In 1,586 ED patients with acute dyspnea, BNP at 100 pg/mL was 83.4% accurate for heart failure, and below 50 pg/mL its NPV was 96%. A useful test, with real overlap between the groups.",
+           es: "En 1.586 pacientes con disnea aguda en urgencias, el BNP con corte de 100 pg/mL tuvo una exactitud del 83,4 % para insuficiencia cardíaca, y por debajo de 50 pg/mL su VPN fue del 96 %. Una prueba útil, con solapamiento real entre los grupos." },
+      c: "Maisel AS, et al. Rapid measurement of B-type natriuretic peptide in the emergency diagnosis of heart failure. N Engl J Med. 2002;347(3):161-7.", doi: "10.1056/NEJMoa020233" },
+    { p: "excellent", t: { en: "Excellent test · sensitive troponin for MI", es: "Prueba excelente · troponina sensible en IAM" },
+      x: { en: "In 718 ED patients with suspected myocardial infarction, sensitive troponin assays reached an AUC of 0.95–0.96 at presentation, against 0.90 for the standard assay.",
+           es: "En 718 pacientes con sospecha de infarto en urgencias, las troponinas sensibles alcanzaron un AUC de 0,95–0,96 al ingreso, frente a 0,90 con el ensayo convencional." },
+      c: "Reichlin T, et al. Early diagnosis of myocardial infarction with sensitive cardiac troponin assays. N Engl J Med. 2009;361(9):858-67.", doi: "10.1056/NEJMoa0900428" },
+    { p: "weak", t: { en: "Weak test · SIRS for sepsis mortality", es: "Prueba débil · SIRS y mortalidad en sepsis" },
+      x: { en: "Among 879 ED patients with suspected infection, SIRS predicted in-hospital mortality with an AUROC of 0.65, while qSOFA reached 0.80.",
+           es: "En 879 pacientes con sospecha de infección en urgencias, el SIRS predijo la mortalidad hospitalaria con un AUC de 0,65, mientras que el qSOFA llegó a 0,80." },
+      c: "Freund Y, et al. Prognostic accuracy of Sepsis-3 criteria for in-hospital mortality among patients with suspected infection presenting to the emergency department. JAMA. 2017;317(3):301-308.", doi: "10.1001/jama.2016.20329" },
+    { p: "none", t: { en: "No discrimination · fever and WBC for bacteremia", es: "Sin discriminación · fiebre y leucocitos en bacteriemia" },
+      x: { en: "In a review of 35 studies, fever ≥38 °C (LR 1.9) and isolated leukocytosis (LR below 1.7) barely changed the probability of bacteremia. Likelihood ratios close to 1 mean the two curves almost coincide.",
+           es: "En una revisión de 35 estudios, la fiebre ≥38 °C (RV 1,9) y la leucocitosis aislada (RV menor de 1,7) apenas cambiaron la probabilidad de bacteriemia. Razones de verosimilitud cercanas a 1 indican que las dos curvas casi coinciden." },
+      c: "Coburn B, et al. Does this adult patient with suspected bacteremia require blood cultures? JAMA. 2012;308(5):502-11.", doi: "10.1001/jama.2012.8262" },
+    { p: "unequal", t: { en: "Unequal spread · ROC fundamentals", es: "Dispersión desigual · fundamentos de ROC" },
+      x: { en: "A classic methods paper: sensitivity and specificity depend on the chosen threshold, the ROC curve describes every threshold at once, and fitting smooth curves to real data has its own pitfalls.",
+           es: "Un artículo metodológico clásico: la sensibilidad y la especificidad dependen del umbral elegido, la curva ROC describe todos los umbrales a la vez y ajustar curvas suaves a datos reales tiene sus propias trampas." },
+      c: "Metz CE. Basic principles of ROC analysis. Semin Nucl Med. 1978;8(4):283-98.", doi: "10.1016/s0001-2998(78)80014-2" },
+    { p: "rare", t: { en: "Rare disease · very low-risk suspected PE", es: "Enfermedad rara · sospecha de TEP de muy bajo riesgo" },
+      x: { en: "In very low-risk ED patients with suspected pulmonary embolism, PE was found in only 1.5–2.7%. Skipping further tests with the PERC rule cut CT angiography from 23% to 13% without more missed events at 3 months.",
+           es: "En pacientes de muy bajo riesgo con sospecha de tromboembolismo pulmonar en urgencias, solo el 1,5–2,7 % tenía TEP. Aplicar la regla PERC y no seguir estudiando redujo las angio-TC del 23 % al 13 % sin más eventos no diagnosticados a los 3 meses." },
+      c: "Freund Y, et al. Effect of the Pulmonary Embolism Rule-Out Criteria on subsequent thromboembolic events among low-risk emergency department patients: the PROPER randomized clinical trial. JAMA. 2018;319(6):559-566.", doi: "10.1001/jama.2017.21904" },
+    { p: "small", t: { en: "Small study · how big are accuracy studies?", es: "Estudio pequeño · ¿qué tamaño tienen los estudios?" },
+      x: { en: "Diagnostic accuracy studies in eight leading journals had a median of just 49 patients with the target condition and 76 without it. Only 5% reported a sample-size calculation.",
+           es: "Los estudios de exactitud diagnóstica de ocho revistas líderes tenían una mediana de apenas 49 pacientes con la enfermedad y 76 sin ella. Solo el 5 % informó un cálculo del tamaño muestral." },
+      c: "Bachmann LM, et al. Sample sizes of studies on diagnostic accuracy: literature survey. BMJ. 2006;332(7550):1127-9.", doi: "10.1136/bmj.38793.637789.2F" },
+    { p: "small", t: { en: "Small study · design bias inflates accuracy", es: "Estudio pequeño · el sesgo de diseño infla la exactitud" },
+      x: { en: "Across 218 test evaluations, studies that compared clearly diseased patients with separate healthy controls overestimated accuracy about threefold (relative diagnostic odds ratio 3.0).",
+           es: "En 218 evaluaciones de pruebas, los estudios que comparaban enfermos evidentes con controles sanos separados sobrestimaron la exactitud unas tres veces (odds ratio diagnóstica relativa de 3,0)." },
+      c: "Lijmer JG, et al. Empirical evidence of design-related bias in studies of diagnostic tests. JAMA. 1999;282(11):1061-6.", doi: "10.1001/jama.282.11.1061" },
+    { p: null, t: { en: "Choosing the cutoff · age-adjusted D-dimer", es: "Elegir el punto de corte · dímero D ajustado por edad" },
+      x: { en: "Raising the D-dimer cutoff with age (age × 10 µg/L from 50 years) let clinicians exclude PE in 29.7% of patients aged 75 or older, up from 6.4%, without additional false negatives.",
+           es: "Subir el punto de corte del dímero D según la edad (edad × 10 µg/L a partir de los 50 años) permitió descartar TEP en el 29,7 % de los mayores de 75 años, frente al 6,4 %, sin falsos negativos adicionales." },
+      c: "Righini M, et al. Age-adjusted D-dimer cutoff levels to rule out pulmonary embolism: the ADJUST-PE study. JAMA. 2014;311(11):1117-24.", doi: "10.1001/jama.2014.2135" }
+  ];
+  function renderRefs() {
+    $("refs").innerHTML = REFS.map(r => `<li class="ref">
+      <div class="ref-head"><h3>${esc(r.t[L])}</h3>${r.p ? `<button class="btn ref-try" type="button" data-try="${r.p}">${T("try_it")}</button>` : ""}</div>
+      <p>${esc(r.x[L])}</p>
+      <cite>${esc(r.c)} <a href="https://doi.org/${r.doi}" target="_blank" rel="noopener">doi:${r.doi}</a></cite>
+    </li>`).join("");
+  }
+  $("refs").addEventListener("click", e => {
+    const b = e.target.closest("[data-try]");
+    if (!b) return;
+    set(Object.assign({ preset: b.dataset.try }, PRESETS[b.dataset.try]));
+    window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  });
+
   /* ---------- best cutoff ---------- */
   function bestCut(c) {
     let best = -Infinity, bt = S.t;
@@ -896,6 +971,7 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
     L = r.value;
     try { localStorage.setItem("roc-sim-lang", L); } catch (_) {}
     applyLang();
+    renderRefs();
     render();
   }));
   $("showHist").addEventListener("change", e => set({ showHist: e.target.checked }));
@@ -936,6 +1012,7 @@ svg.chart { width: 100%; height: auto; display: block; touch-action: pan-y; user
   bindDrag(rsvg, rocTo, "r");
 
   applyLang();
+  renderRefs();
   sync();
   render();
 })();
