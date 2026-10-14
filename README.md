@@ -57,6 +57,10 @@ Each group's scores follow a normal distribution. The population ROC curve and A
 
 Download `index.html` and open it in a browser. It is a single self-contained file with no build step; only the web fonts load from Google Fonts.
 
+## Privacy
+
+The live site counts visits anonymously with [GoatCounter](https://www.goatcounter.com/), which uses no cookies and collects no personal data.
+
 ## Disclaimer
 
 This is a teaching aid. It is not intended for clinical decision-making.
